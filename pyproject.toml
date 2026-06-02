@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bevmatch"
+version = "0.1.0"
+description = "Same-Place Comparison OSS: retrieve, align, compare, and validate same-place observations."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "BEVMatch contributors" }]
+keywords = ["place-recognition", "localization", "lidar", "bev", "map-validation", "robotics"]
+dependencies = ["numpy>=1.23"]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.6"]
+dev = ["pytest>=7.0"]
+
+[project.urls]
+Documentation = "https://github.com/your-org/BEVMatch/blob/main/docs/architecture.md"
+
+[tool.setuptools.packages.find]
+include = ["bevmatch*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
