@@ -17,8 +17,8 @@ Query Scene
 
 ## Status
 
-v0.4 — change detection MVP（occlusion-aware comparable region、temporal persistence による dynamic filtering、instance precision/recall 評価、before/after viewer）。
-v0.3 alignment framework（SE2/SE3 aligner、failure classification、pose error 評価）、v0.2 retrieval framework（descriptor / index プラグイン、Recall@K/MRR）、v0.1 MVP パイプラインも合成データでエンドツーエンド動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
+v0.5 — map validation MVP（point cloud / occupancy / vector map validator、issue severity schema、stale region report、human-review export、issue precision/recall 評価）。
+v0.4 change detection（occlusion-aware comparable region、temporal persistence）、v0.3 alignment framework（SE2/SE3、failure classification）、v0.2 retrieval framework（descriptor / index プラグイン、Recall@K/MRR）、v0.1 MVP パイプラインも合成データでエンドツーエンド動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
 
 ## Quickstart
 
@@ -103,6 +103,29 @@ use_occlusion=True:  removed=1 (occluded mis-reported=0)  occluded=0.33
 - **temporal persistence**：複数フレームで持続する変化のみ actionable とし、移動物体は `dynamic` として除外。
 - `out/change_evidence.png` に before/after + 変化エビデンスの4面ビューを出力。
 
+### Map validation benchmark (v0.5)
+
+```bash
+python examples/run_map_validation.py
+```
+
+「この地図は現在の世界とまだ一致しているか？」を検証し（ファイル構文検証ではなく、§12.5）、
+change evidence を運用判断可能な **Map Validation Issue** に変換します。
+
+```text
+| ID            | Severity | Type                     | Location     | Action                    |
+| map_a-ISSUE-0 | high     | new_static_obstacle      | (+10.7,+11.2)| Inspect / add to map      |
+| map_a-ISSUE-2 | medium   | missing_static_structure | (+19.1,+18.5)| Verify removal; update    |
+| map_a-ISSUE-4 | medium   | map_element_unobserved   | (+19.2,+18.5)| Confirm vector element    |
+
+issue P/R/F1 = 1.00/1.00/1.00     fresh map -> 0 issues
+```
+
+- point cloud / occupancy / vector(Lanelet2 風) の3 validator（`MapValidator` プラグイン）。
+- severity schema（INFO→CRITICAL）+ recommended action + stale region 抽出。
+- `out/map_validation_review.md`（人手レビュー用）と `out/map_validation_report.json` を出力。
+- 既存の Lanelet2 構文 validator を置き換えず、**observation-to-map consistency** を担う（§12.5）。
+
 ### Library 利用
 
 ```python
@@ -133,7 +156,8 @@ Query LiDAR scene
 | `bevmatch.retrieval` | descriptor / index プラグイン + Top-K retriever (§9, §7.2) |
 | `bevmatch.alignment` | SE2/SE3 aligner プラグイン（BEV相互相関 + ICP）+ failure 分類 (§10, §7.2) |
 | `bevmatch.change` | occlusion-aware diff + comparable region + persistence (§11) |
-| `bevmatch.eval` | retrieval / alignment メトリクスと評価レシピ (§13) |
+| `bevmatch.maps` | map 検証 validator + issue severity + review report (§12) |
+| `bevmatch.eval` | retrieval / alignment / change / map メトリクス (§13) |
 | `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
 | `bevmatch.io` | evidence エクスポート (§16.4) |

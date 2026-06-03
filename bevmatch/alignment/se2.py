@@ -17,6 +17,7 @@ import numpy as np
 from bevmatch.alignment.base import Aligner
 from bevmatch.alignment.failure import classify_alignment_failure
 from bevmatch.core.datamodel import AlignmentHypothesis, Pose2D, Scene, _wrap_angle
+from bevmatch.grid_utils import dilate as _dilate
 from bevmatch.representations.bev import BEVConfig, points_to_bev
 
 
@@ -79,15 +80,6 @@ def _icp_se2(query: np.ndarray, ref: np.ndarray, init: Pose2D, cfg: SE2AlignConf
             break
         pose = new_pose
     return pose, inlier_ratio, rmse, n_corr
-
-
-def _dilate(mask: np.ndarray) -> np.ndarray:
-    """3x3 binary dilation without scipy."""
-    out = mask.copy()
-    for dr in (-1, 0, 1):
-        for dc in (-1, 0, 1):
-            out |= np.roll(np.roll(mask, dr, axis=0), dc, axis=1)
-    return out
 
 
 def bev_overlap(

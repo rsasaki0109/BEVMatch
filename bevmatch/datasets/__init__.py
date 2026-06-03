@@ -2,10 +2,12 @@
 
 from bevmatch.datasets.synthetic import (
     ChangeCase,
+    MapValidationCase,
     OcclusionCase,
     RouteQuery,
     SyntheticRoute,
     SyntheticSamePlace,
+    make_map_validation_case,
     make_occlusion_case,
     make_synthetic_change_case,
     make_synthetic_route,
@@ -22,4 +24,6 @@ __all__ = [
     "make_synthetic_change_case",
     "OcclusionCase",
     "make_occlusion_case",
+    "MapValidationCase",
+    "make_map_validation_case",
 ]
