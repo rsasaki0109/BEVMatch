@@ -3,6 +3,19 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.8.1 — Technical note: two findings
+
+- `docs/findings.md`: a short, honest technical note that states what the
+  benchmarks *mean* — (1) within a modality, representation quality is real and
+  measurable (a learned descriptor lifts every forward case); (2) across a
+  viewpoint gap (reverse-direction seq 08) representation quality is *not* enough
+  — both camera descriptors stay pinned at 0.015 while the same intervention
+  recovers LiDAR from 0.34 to 0.77 — the measured argument for modality-agnostic
+  same-place comparison. Includes an explicit limitations section (grayscale
+  camera, single dataset, small seq 07, no fused retriever yet).
+- `docs/benchmarks.md`: summary figure embedded at the top; links to findings.
+- README: link to the findings note.
+
 ## 1.8.0 — One-figure results summary
 
 - `scripts/make_results_summary.py` + `docs/assets/bevmatch_results_summary.png`:

@@ -4,6 +4,17 @@ These are **real** numbers on **public datasets**, produced by BEVMatch's own
 retrieval pipeline (not a detached reimplementation). Every table is reproducible
 from a script in `scripts/` against data anyone can download.
 
+![Recall@1 @ 5 m across the KITTI loop sequences for three descriptors behind one BEVMatch interface](assets/bevmatch_results_summary.png)
+
+*The whole story in one figure* (`python scripts/make_results_summary.py`): three
+descriptors — hand-crafted LiDAR Scan-Context, the generic ResNet-18 camera
+baseline, and the learned EigenPlaces camera SOTA — all behind BEVMatch's one
+retrieval interface, on the same protocol. A learned descriptor lifts the forward
+cases; on reverse-direction seq 08 both camera descriptors hit a viewpoint wall
+(~0.02) that learning does not break, while the 360° LiDAR holds (0.34) and
+recovers by a config swap (0.76). Full reasoning in
+[Two findings](findings.md); per-sequence tables below.
+
 > Two kinds of numbers live in this repo. Treat them differently:
 >
 > * **Real-data benchmarks (this file)** — KITTI odometry, standard place-recognition
