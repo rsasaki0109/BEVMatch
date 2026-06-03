@@ -19,6 +19,7 @@ from bevmatch.alignment.failure import classify_alignment_failure
 from bevmatch.core.datamodel import AlignmentHypothesis, Pose2D, Scene, _wrap_angle
 from bevmatch.grid_utils import dilate as _dilate
 from bevmatch.representations.bev import BEVConfig, points_to_bev
+from bevmatch.spatial import nearest_neighbors
 
 
 @dataclass(frozen=True)
@@ -62,10 +63,8 @@ def _icp_se2(query: np.ndarray, ref: np.ndarray, init: Pose2D, cfg: SE2AlignConf
     inlier_ratio, rmse, n_corr = 0.0, 0.0, 0
     for i in range(cfg.icp_iters):
         moved = pose.transform(query)
-        # nearest ref neighbour per moved query point (brute force; small N)
-        d2 = ((moved[:, None, :] - ref[None, :, :]) ** 2).sum(axis=2)
-        nn = np.argmin(d2, axis=1)
-        dist = np.sqrt(d2[np.arange(len(moved)), nn])
+        # nearest ref neighbour per moved query point (KD-tree; scales to dense clouds)
+        dist, nn = nearest_neighbors(moved, ref)
         gate = max(cfg.icp_max_dist_m * (1.0 - 0.6 * i / max(1, cfg.icp_iters)), 0.4)
         keep = dist < gate
         inlier_ratio = float(keep.mean())

@@ -17,8 +17,22 @@ from bevmatch.datasets.synthetic import (
     make_synthetic_route,
     make_synthetic_same_place,
 )
+from bevmatch.datasets.loaders import (
+    load_kitti_bin,
+    load_las_tile,
+    load_pcd,
+    remove_ground,
+    scene_from_points,
+    voxel_downsample,
+)
 
 __all__ = [
+    "voxel_downsample",
+    "remove_ground",
+    "scene_from_points",
+    "load_kitti_bin",
+    "load_pcd",
+    "load_las_tile",
     "SyntheticSamePlace",
     "make_synthetic_same_place",
     "SyntheticRoute",

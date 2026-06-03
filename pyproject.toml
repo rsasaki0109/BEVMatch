@@ -16,7 +16,9 @@ dependencies = ["numpy>=1.23"]
 [project.optional-dependencies]
 viz = ["matplotlib>=3.6"]
 faiss = ["faiss-cpu>=1.7"]
-dev = ["pytest>=7.0"]
+perf = ["scipy>=1.9"]  # KD-tree nearest neighbours for dense-cloud alignment
+data = ["laspy>=2.0", "open3d>=0.16"]  # real point-cloud loaders (LAS / PCD)
+dev = ["pytest>=7.0", "scipy>=1.9"]
 # ROS2 integration (bevmatch.ros.node) needs rclpy, provided by a ROS2 install
 # (e.g. ROS2 Jazzy), not pip. The pure-Python bevmatch.ros bridge needs nothing.
 
