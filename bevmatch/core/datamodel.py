@@ -56,6 +56,61 @@ def _wrap_angle(a: float) -> float:
 
 
 @dataclass
+class PoseSE3:
+    """A rigid SE3 pose with ZYX (yaw-pitch-roll) Euler rotation (§10.3)."""
+
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    roll: float = 0.0
+    pitch: float = 0.0
+    yaw: float = 0.0
+
+    def rotation(self) -> np.ndarray:
+        cr, sr = np.cos(self.roll), np.sin(self.roll)
+        cp, sp = np.cos(self.pitch), np.sin(self.pitch)
+        cy, sy = np.cos(self.yaw), np.sin(self.yaw)
+        rz = np.array([[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]])
+        ry = np.array([[cp, 0, sp], [0, 1, 0], [-sp, 0, cp]])
+        rx = np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]])
+        return rz @ ry @ rx
+
+    def translation(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z], dtype=float)
+
+    def transform(self, points_xyz: np.ndarray) -> np.ndarray:
+        pts = np.asarray(points_xyz, dtype=float)
+        if pts.size == 0:
+            return pts.reshape(-1, 3)
+        return pts @ self.rotation().T + self.translation()
+
+    def inverse(self) -> "PoseSE3":
+        R = self.rotation()
+        t = -R.T @ self.translation()
+        return PoseSE3.from_matrix(R.T, t)
+
+    def project_se2(self) -> Pose2D:
+        return Pose2D(self.x, self.y, _wrap_angle(self.yaw))
+
+    @staticmethod
+    def from_matrix(R: np.ndarray, t: np.ndarray) -> "PoseSE3":
+        pitch = float(np.arcsin(np.clip(-R[2, 0], -1.0, 1.0)))
+        roll = float(np.arctan2(R[2, 1], R[2, 2]))
+        yaw = float(np.arctan2(R[1, 0], R[0, 0]))
+        return PoseSE3(float(t[0]), float(t[1]), float(t[2]), roll, pitch, yaw)
+
+    @staticmethod
+    def from_se2(pose: Pose2D) -> "PoseSE3":
+        return PoseSE3(pose.x, pose.y, 0.0, 0.0, 0.0, pose.yaw)
+
+    def to_dict(self) -> dict[str, float]:
+        return {
+            "x": self.x, "y": self.y, "z": self.z,
+            "roll": self.roll, "pitch": self.pitch, "yaw": self.yaw,
+        }
+
+
+@dataclass
 class Observation:
     """A single-modality (near-)raw observation belonging to a Scene (§5.3)."""
 
@@ -66,6 +121,15 @@ class Observation:
     def xy(self) -> np.ndarray:
         pts = np.asarray(self.points, dtype=float)
         return pts[:, :2] if pts.ndim == 2 and pts.shape[1] >= 2 else pts.reshape(-1, 2)
+
+    def xyz(self) -> np.ndarray:
+        """Return ``(N, 3)`` points, padding z=0 when the data is 2D."""
+        pts = np.asarray(self.points, dtype=float)
+        if pts.ndim != 2:
+            pts = pts.reshape(-1, pts.shape[-1] if pts.ndim else 1)
+        if pts.shape[1] >= 3:
+            return pts[:, :3]
+        return np.hstack([pts[:, :2], np.zeros((len(pts), 1))])
 
 
 @dataclass
@@ -124,15 +188,27 @@ class AlignmentHypothesis:
     success: bool
     score: float = 0.0
     failure_reason: str | None = None
+    failure_class: str | None = None  # §10.5 classified failure mode
+    num_correspondences: int = 0
+    rmse_m: float = 0.0  # residual RMSE over inlier correspondences
+    comparable_area_ratio: float = 0.0
+    degeneracy: dict[str, Any] = field(default_factory=dict)  # observability flags
+    pose_se3: dict[str, float] | None = None  # full 6-DoF estimate if available
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "relative_pose": self.relative_pose.to_dict(),
+            "pose_se3": self.pose_se3,
             "overlap_ratio": round(float(self.overlap_ratio), 4),
             "inlier_ratio": round(float(self.inlier_ratio), 4),
+            "comparable_area_ratio": round(float(self.comparable_area_ratio), 4),
+            "num_correspondences": int(self.num_correspondences),
+            "rmse_m": round(float(self.rmse_m), 4),
             "score": round(float(self.score), 4),
             "success": self.success,
             "failure_reason": self.failure_reason,
+            "failure_class": self.failure_class,
+            "degeneracy": self.degeneracy,
         }
 
 

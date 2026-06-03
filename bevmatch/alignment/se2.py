@@ -14,7 +14,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from bevmatch.core.datamodel import AlignmentHypothesis, Pose2D, _wrap_angle
+from bevmatch.alignment.base import Aligner
+from bevmatch.alignment.failure import classify_alignment_failure
+from bevmatch.core.datamodel import AlignmentHypothesis, Pose2D, Scene, _wrap_angle
 from bevmatch.representations.bev import BEVConfig, points_to_bev
 
 
@@ -23,10 +25,11 @@ class SE2AlignConfig:
     bev: BEVConfig = BEVConfig()
     yaw_step_deg: float = 2.0
     occ_threshold: float = 0.5
-    min_overlap_ratio: float = 0.30
+    min_overlap_ratio: float = 0.45  # genuine revisits ≳0.74; unrelated places ≲0.33
     min_points: int = 20
     icp_iters: int = 25
     icp_max_dist_m: float = 1.5  # correspondence gate (shrinks over iterations)
+    rmse_fail_m: float = 1.0  # residual above this flags a likely mis-alignment
 
 
 def _rotate(points_xy: np.ndarray, yaw: float) -> np.ndarray:
@@ -49,10 +52,13 @@ def _umeyama_se2(src: np.ndarray, dst: np.ndarray) -> Pose2D:
     return Pose2D(float(t[0]), float(t[1]), float(np.arctan2(R[1, 0], R[0, 0])))
 
 
-def _icp_se2(query: np.ndarray, ref: np.ndarray, init: Pose2D, cfg: SE2AlignConfig) -> tuple[Pose2D, float]:
-    """Refine ``init`` (query->ref) by point-to-point ICP. Returns (pose, inliers)."""
+def _icp_se2(query: np.ndarray, ref: np.ndarray, init: Pose2D, cfg: SE2AlignConfig) -> tuple[Pose2D, float, float, int]:
+    """Refine ``init`` (query->ref) by point-to-point ICP.
+
+    Returns ``(pose, inlier_ratio, rmse_m, num_correspondences)``.
+    """
     pose = init
-    inlier_ratio = 0.0
+    inlier_ratio, rmse, n_corr = 0.0, 0.0, 0
     for i in range(cfg.icp_iters):
         moved = pose.transform(query)
         # nearest ref neighbour per moved query point (brute force; small N)
@@ -62,7 +68,9 @@ def _icp_se2(query: np.ndarray, ref: np.ndarray, init: Pose2D, cfg: SE2AlignConf
         gate = max(cfg.icp_max_dist_m * (1.0 - 0.6 * i / max(1, cfg.icp_iters)), 0.4)
         keep = dist < gate
         inlier_ratio = float(keep.mean())
-        if keep.sum() < 3:
+        n_corr = int(keep.sum())
+        rmse = float(np.sqrt(np.mean(dist[keep] ** 2))) if n_corr else float("inf")
+        if n_corr < 3:
             break
         new_pose = _umeyama_se2(query[keep], ref[nn[keep]])
         moved_new = new_pose.transform(query)
@@ -70,7 +78,7 @@ def _icp_se2(query: np.ndarray, ref: np.ndarray, init: Pose2D, cfg: SE2AlignConf
             pose = new_pose
             break
         pose = new_pose
-    return pose, inlier_ratio
+    return pose, inlier_ratio, rmse, n_corr
 
 
 def _dilate(mask: np.ndarray) -> np.ndarray:
@@ -80,6 +88,26 @@ def _dilate(mask: np.ndarray) -> np.ndarray:
         for dc in (-1, 0, 1):
             out |= np.roll(np.roll(mask, dr, axis=0), dc, axis=1)
     return out
+
+
+def bev_overlap(
+    query_in_ref_xy: np.ndarray,
+    ref_xy: np.ndarray,
+    bev: BEVConfig,
+    occ_threshold: float = 0.5,
+) -> tuple[float, float]:
+    """Return ``(overlap_ratio, inlier_ratio)`` from dilated BEV occupancy masks.
+
+    Shared by the SE2 and SE3 aligners so overlap evidence is comparable.
+    """
+    q_grid = _dilate(points_to_bev(query_in_ref_xy, bev).occupied(occ_threshold))
+    r_grid = _dilate(points_to_bev(ref_xy, bev).occupied(occ_threshold))
+    inter = int(np.count_nonzero(q_grid & r_grid))
+    n_q = int(np.count_nonzero(q_grid))
+    n_ref = int(np.count_nonzero(r_grid))
+    overlap_ratio = inter / max(1, min(n_q, n_ref))
+    inlier_ratio = inter / max(1, n_q)
+    return overlap_ratio, inlier_ratio
 
 
 def align_se2(
@@ -99,6 +127,8 @@ def align_se2(
             inlier_ratio=0.0,
             success=False,
             failure_reason="insufficient geometric constraints",
+            failure_class="insufficient_constraints",
+            num_correspondences=0,
         )
 
     size = cfg.bev.size
@@ -130,24 +160,44 @@ def align_se2(
 
     # Refine the cell/degree-quantised coarse estimate to sub-cell accuracy so
     # that matched structure cancels and only genuine changes survive the diff.
-    rel, icp_inliers = _icp_se2(q, r, coarse, cfg)
+    rel, icp_inliers, rmse, n_corr = _icp_se2(q, r, coarse, cfg)
 
-    # Quantify overlap/inliers with the chosen transform.
-    q_in_ref = rel.transform(q)
-    q_grid = _dilate(points_to_bev(q_in_ref, cfg.bev).occupied(cfg.occ_threshold))
-    ref_dil = _dilate(ref_grid.astype(bool))
-    inter = int(np.count_nonzero(q_grid & ref_dil))
-    n_q = int(np.count_nonzero(q_grid))
-    n_ref = int(np.count_nonzero(ref_dil))
-    overlap_ratio = inter / max(1, min(n_q, n_ref))
-    inlier_ratio = inter / max(1, n_q)
+    # Quantify overlap with the chosen transform (shared BEV-occupancy metric).
+    overlap_ratio, grid_inlier = bev_overlap(rel.transform(q), r, cfg.bev, cfg.occ_threshold)
+    inlier_ratio = max(grid_inlier, icp_inliers)
 
     success = overlap_ratio >= cfg.min_overlap_ratio
+    failure_class = classify_alignment_failure(
+        overlap_ratio=overlap_ratio,
+        inlier_ratio=inlier_ratio,
+        rmse_m=rmse,
+        num_correspondences=n_corr,
+        success=success,
+        min_overlap_ratio=cfg.min_overlap_ratio,
+        min_correspondences=cfg.min_points,
+        rmse_fail_m=cfg.rmse_fail_m,
+    )
     return AlignmentHypothesis(
         relative_pose=rel,
         overlap_ratio=overlap_ratio,
-        inlier_ratio=max(inlier_ratio, icp_inliers),
+        inlier_ratio=inlier_ratio,
+        comparable_area_ratio=overlap_ratio,
+        num_correspondences=n_corr,
+        rmse_m=rmse,
         success=success,
         score=best["score"],
         failure_reason=None if success else "overlap insufficient",
+        failure_class=failure_class,
     )
+
+
+class SE2Aligner(Aligner):
+    """SE2 (x, y, yaw) baseline aligner for ground-robot / road scenes (§10.3)."""
+
+    name = "se2-bev-xcorr"
+
+    def __init__(self, config: SE2AlignConfig | None = None) -> None:
+        self.config = config or SE2AlignConfig()
+
+    def align(self, query: Scene, reference: Scene) -> AlignmentHypothesis:
+        return align_se2(query.primary().xy(), reference.primary().xy(), self.config)

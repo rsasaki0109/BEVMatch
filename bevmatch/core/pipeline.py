@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from bevmatch.alignment.se2 import SE2AlignConfig, align_se2
+from bevmatch.alignment.base import Aligner
+from bevmatch.alignment.se2 import SE2Aligner
 from bevmatch.change.bev_diff import ChangeConfig, detect_changes
 from bevmatch.core.datamodel import Scene
 from bevmatch.core.evidence import ComparisonEvidenceBundle
@@ -17,11 +18,11 @@ from bevmatch.retrieval.retriever import SceneDatabase
 
 @dataclass
 class SamePlaceComparisonPipeline:
-    """Orchestrates the v0.1 retrieval -> alignment -> change pipeline."""
+    """Orchestrates the retrieval -> alignment -> change pipeline (pluggable aligner)."""
 
     database: SceneDatabase
     top_k: int = 5
-    align_config: SE2AlignConfig = field(default_factory=SE2AlignConfig)
+    aligner: Aligner = field(default_factory=SE2Aligner)
     change_config: ChangeConfig = field(default_factory=ChangeConfig)
 
     def run(self, query_scene: Scene) -> ComparisonEvidenceBundle:
@@ -29,12 +30,12 @@ class SamePlaceComparisonPipeline:
         bundle.provenance = {
             "descriptor": self.database.descriptor.name,
             "index": self.database.index.name,
-            "aligner": "se2-bev-xcorr",
+            "aligner": self.aligner.name,
             "change_detector": "bev-occupancy-diff",
             "top_k": self.top_k,
             "bev": {
-                "range_m": self.align_config.bev.range_m,
-                "resolution_m": self.align_config.bev.resolution_m,
+                "range_m": self.change_config.bev.range_m,
+                "resolution_m": self.change_config.bev.resolution_m,
             },
         }
 
@@ -48,11 +49,7 @@ class SamePlaceComparisonPipeline:
         bundle.best_candidate = best
         ref_scene = self.database.get_scene(best.scene_id)
 
-        alignment = align_se2(
-            query_scene.primary().xy(),
-            ref_scene.primary().xy(),
-            self.align_config,
-        )
+        alignment = self.aligner.align(query_scene, ref_scene)
         bundle.alignment = alignment
         bundle.uncertainty = {
             "retrieval_score": best.score,
