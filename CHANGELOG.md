@@ -3,6 +3,28 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.7.0 — Learned SOTA descriptor comparison (EigenPlaces)
+
+- `scripts/benchmark_kitti_vpr_learned.py`: swaps the generic ResNet-18 (ImageNet)
+  camera descriptor for **EigenPlaces** (Berton et al., ICCV 2023, MIT — loaded
+  at runtime via `torch.hub`, not vendored), a place-recognition network trained
+  on San Francisco eXtra Large. SF-XL is disjoint from KITTI, so KITTI is held out
+  for *every* sequence — a fair comparison everywhere, no train-on-test caveat.
+  Same protocol as the ResNet-18 benchmark; the framework check confirms
+  `SceneDatabase` reproduces the learned ranking too.
+- **Finding:** the learned SOTA descriptor lifts every *forward* revisit case
+  (seq 07 R@1 0.500 → 0.681, seq 00 0.923 → 0.957, seq 05 0.848 → 0.914; mean
+  0.653 → 0.709) — representation quality clearly helps. **But on the reverse-
+  direction loops (seq 08) it is pinned at 0.015, identical to the baseline.** A
+  forward-facing camera never observes the opposite-direction view, so *no*
+  appearance descriptor — however well trained — can match it. This is a
+  viewpoint/geometry wall, not a representation gap, and it is exactly where the
+  360° LiDAR descriptor is instead *recoverable* (0.339 → 0.765 by config). The
+  sharpest evidence yet for Principle 2 (modality ≠ representation).
+- docs/benchmarks.md + README: learned-vs-baseline camera table.
+- Note: an OverlapTransformer (GPL-3.0) LiDAR comparison was scoped but dropped
+  to keep the project free of GPL dependencies; EigenPlaces (MIT) is used instead.
+
 ## 1.6.0 — Cross-modal failure-mode GIF
 
 - `scripts/make_crossmodal_gif.py` + `docs/assets/bevmatch_crossmodal.gif`:
