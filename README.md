@@ -5,6 +5,11 @@
 </p>
 <p align="center"><sub><b>Real data:</b> a LiDAR observation localized against a real 109M-point survey map — BEVMatch retrieves the place among real tiles and recovers the SE2 pose + covariance (actual pipeline output).</sub></p>
 
+<p align="center">
+  <img src="docs/assets/bevmatch_camera.gif" alt="BEVMatch visual place recognition on real KITTI images — matching the revisit to the first visit (loop closure)" width="80%">
+</p>
+<p align="center"><sub><b>Same framework, camera input</b> (Principle 2): real KITTI seq 00 loop closure — BEVMatch's <code>CameraEmbeddingDescriptor</code> (ResNet-18) matches each current frame (revisit) to its first-visit frame. Data: KITTI odometry (Geiger et al.), research demo.</sub></p>
+
 > BEVMatch is not another place recognition method.
 > It is an OSS pipeline for finding the same place, aligning it, comparing it, and turning differences into map validation evidence.
 
