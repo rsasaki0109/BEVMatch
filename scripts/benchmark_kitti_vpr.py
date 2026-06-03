@@ -35,13 +35,23 @@ sys.path.insert(0, str(ROOT))
 from bevmatch.retrieval import SceneDatabase  # noqa: E402
 from bevmatch.sensors.camera import CameraEmbeddingDescriptor, camera_scene  # noqa: E402
 
-# (label, image dir, poses file, times file)
-SEQUENCES = [
-    ("00",
-     Path("$HOME/datasets/kitti_seq00_full/image_0"),
-     Path("$HOME/datasets/kitti_seq00_subset/poses_00.txt"),
-     Path("$HOME/datasets/kitti_seq00_full/times.txt")),
-]
+DATASETS = Path("$HOME/datasets")
+SUBSETS = DATASETS / "kitti_odometry_training_subsets"
+
+
+def _seq_paths(seq: str):
+    """(label, image_0 dir, poses file, times file) for a KITTI sequence."""
+    if seq == "00":
+        return (seq, DATASETS / "kitti_seq00_full/image_0",
+                DATASETS / "kitti_seq00_subset/poses_00.txt",
+                DATASETS / "kitti_seq00_full/times.txt")
+    return (seq, DATASETS / f"kitti_seq{seq}_image0",
+            SUBSETS / f"seq{seq}/poses_{seq}.txt",
+            SUBSETS / f"seq{seq}/times.txt")
+
+
+SEQ_IDS = ["00", "05", "06", "07", "08"]
+SEQUENCES = [_seq_paths(s) for s in SEQ_IDS]
 DISTANCES = [5.0, 10.0, 25.0]   # positive radius (m)
 KS = [1, 5, 10, 20]
 TIME_EXCLUDE = 30.0             # s: exclude this temporal window from retrieval
@@ -162,12 +172,21 @@ def evaluate(label: str, img_dir: Path, poses_path: Path, times_path: Path) -> d
 
 
 def main() -> None:
+    want = sys.argv[1:] or SEQ_IDS
+    seqs = [_seq_paths(s) for s in want]
     all_results = []
-    for label, img_dir, poses, times in SEQUENCES:
+    for label, img_dir, poses, times in seqs:
         if not img_dir.exists() or not poses.exists():
             print(f"skip seq{label}: missing data")
             continue
         all_results.append(evaluate(label, img_dir, poses, times))
+    if all_results:
+        for D in DISTANCES:
+            key = f"{D:.0f}m"
+            vals = {k: np.mean([r["by_distance"][key][f"recall@{k}"] for r in all_results])
+                    for k in KS}
+            print(f"\n=== mean @ {key} over {len(all_results)} sequences ===  "
+                  + "  ".join(f"R@{k}={vals[k]:.3f}" for k in KS))
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(all_results, indent=2))
     print(f"\nwrote {OUT}")

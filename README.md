@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.3.0-informational" alt="v1.3.0">
+  <img src="https://img.shields.io/badge/version-1.4.0-informational" alt="v1.4.0">
 </p>
 
 <p align="center">
@@ -45,26 +45,22 @@ retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2
 （positive = GT pose 距離 ≤ D かつ時間 30s 超離れ、時間近傍は検索から除外）で
 BEVMatch 自身の検索パイプラインの **Recall@K を実測**した結果です（合成データではありません）。
 
-**同一 seq 00・同一プロトコルで LiDAR と camera を比較**（Principle 2: modality ≠ representation）:
+**LiDAR と camera を 5 つのループ列で同一プロトコル比較**（Recall@1 @ 5 m）:
 
-| modality | descriptor | Recall@1 | Recall@5 | Recall@20 | queries |
-|---|---|---|---|---|---|
-| LiDAR  | Scan-Context (ring-key + SC rerank) | **0.913** | 0.920 | 0.928 | 1706 |
-| Camera | ResNet-18 embedding (ImageNet)      | **0.923** | 0.942 | 0.954 | 1706 |
-
-**LiDAR Scan-Context を 5 つのループ列で評価**（positive radius 5 m, R@1）:
-
-| seq | 00 | 05 | 06 | 07 | 08 | **mean** |
+| seq | 00 | 05 | 06 | 07 | 08（**逆方向**） | **mean** |
 |---|---|---|---|---|---|---|
-| R@1 | 0.913 | 0.783 | 0.887 | 0.596 | 0.339 | **0.704** |
+| **LiDAR** (Scan-Context) | 0.913 | 0.783 | 0.887 | 0.596 | **0.339** | **0.704** |
+| **Camera** (ResNet-18)   | 0.923 | 0.848 | 0.977 | 0.500 | **0.015** | 0.653 |
 
-<sub>seq 00/06（順方向ループ）は R@1≈0.89–0.91 と文献の Scan-Context 水準。seq 08 は
-**逆方向再訪**主体で多くの記述子が苦手とする難所（R@1=0.34）で、隠さず報告。seq 07 は revisit が
-94 件と少なくノイジー。descriptor は default config（20×60 polar, 30m）の素のベースラインで、
-学習系や広レンジに差し替え可能。全シーケンス・全閾値・正直な注記は [docs/benchmarks.md](docs/benchmarks.md)。</sub>
+<sub>**目玉は seq 08（逆方向再訪）**。前方カメラは正反対の景色を見るため appearance では原理的に照合不能で
+R@1=0.015 に崩壊。一方 LiDAR は 360°＋回転不変 Scan-Context なので同じ再訪で 0.339 を維持。順方向では
+camera が上回ることも多い（seq 06: 0.977 vs 0.887）。**どのセンサも万能でない**＝モダリティ非依存フレームワークの
+存在意義。これは Principle 2（modality ≠ representation）の「異なる failure mode」を実データで示すもので、隠さず報告。
+seq 07 は revisit 94 件でノイジー。両 descriptor とも素のベースライン（学習系に差し替え可）。
+全シーケンス・全閾値・プロトコル・正直な注記は [docs/benchmarks.md](docs/benchmarks.md)。</sub>
 
 ```bash
-python scripts/benchmark_kitti_vpr.py            # camera VPR Recall@K (seq 00)
+python scripts/benchmark_kitti_vpr.py            # camera VPR, all loop sequences
 python scripts/benchmark_kitti_lidar.py          # LiDAR Scan-Context, all loop sequences
 ```
 

@@ -35,24 +35,32 @@ CVPR 2012). Sequence 00 is the classic loop-closure-rich drive.
 features, cosine distance. No VPR-specific training or fine-tuning — this is a
 baseline that shows the framework working on real images.
 
-Reproduce: `python scripts/benchmark_kitti_vpr.py`
+Reproduce: `python scripts/benchmark_kitti_vpr.py` (all sequences) or
+`python scripts/benchmark_kitti_vpr.py 00 05` (a subset).
 
-### KITTI seq 00 (4541 frames, 471 s)
+### Across the KITTI loop sequences (positive radius 5 m)
 
-| positive radius | queries | Recall@1 | Recall@5 | Recall@10 | Recall@20 |
-|---|---|---|---|---|---|
-| 5 m  | 1706 | **0.923** | 0.942 | 0.948 | 0.954 |
-| 10 m | 1838 | 0.868 | 0.888 | 0.896 | 0.905 |
-| 25 m | 2089 | 0.789 | 0.825 | 0.843 | 0.869 |
+| sequence | revisit queries | Recall@1 | Recall@5 | Recall@20 |
+|---|---|---|---|---|
+| 00                   | 1706 | 0.923 | 0.942 | 0.954 |
+| 05                   |  963 | 0.848 | 0.885 | 0.906 |
+| 06                   |  565 | **0.977** | 0.984 | 0.989 |
+| 07 (few revisits)    |   94 | 0.500 | 0.596 | 0.692 |
+| 08 (reverse loops)   |  616 | **0.015** | 0.042 | 0.097 |
+| **mean**             |   —  | **0.653** | 0.690 | 0.728 |
 
-We assert in-script that BEVMatch's `SceneDatabase` reproduces this ranking
+We assert in-script that BEVMatch's `SceneDatabase` reproduces the ranking
 (framework check: `SceneDatabase ranking == evaluated cosine`).
 
-*Context:* off-the-shelf ImageNet features give a strong-but-not-saturated
-baseline; VPR-specialised learned descriptors (NetVLAD / Patch-NetVLAD) report
-higher recall on the same data. BEVMatch treats the descriptor as a plugin, so
-swapping in a learned backbone is a drop-in change — these numbers are the
-floor, not the ceiling.
+*Reading these honestly:* on forward revisits the off-the-shelf ImageNet
+features are strong (seq 06 R@1 = 0.98). **seq 08 collapses to 0.015** — and
+that is not a bug. seq 08's revisits are *reverse-direction*: a forward-facing
+camera driving back the opposite way sees the **opposite view** of the same
+place, so an appearance descriptor essentially cannot match it. This is the
+textbook failure mode of camera VPR — and exactly where a 360°, rotation-
+invariant LiDAR descriptor still works (see the cross-modal section). VPR-
+specialised learned descriptors (NetVLAD / Patch-NetVLAD) raise the forward
+numbers; the descriptor is a plugin, so that is a drop-in change.
 
 ## LiDAR — Scan-Context place recognition
 
@@ -98,16 +106,32 @@ the rest of the pipeline — these numbers are the floor, not the ceiling.
 
 ## Cross-modal — same place, same protocol, two sensors
 
-Both descriptors evaluated on **KITTI seq 00**, identical revisit protocol
-(positive radius 5 m, T = 30 s). This is the point of Principle 2 — *modality
-is not representation*: one retrieval framework, two sensors, comparable recall.
+Both descriptors run through the **same retrieval framework**, on the **same
+sequences**, with the **same revisit protocol** (positive radius 5 m, T = 30 s).
+This is the real point of Principle 2 — *modality is not representation*: not
+just "it works on both", but **the two modalities have different failure modes**,
+and that is exactly why same-place comparison wants more than one sensor.
 
-| modality | descriptor | Recall@1 | Recall@5 | Recall@20 |
-|---|---|---|---|---|
-| LiDAR  | Scan-Context (ring-key + SC rerank) | 0.913 | 0.920 | 0.928 |
-| Camera | ResNet-18 embedding (ImageNet)      | 0.923 | 0.942 | 0.954 |
+Recall@1 @ 5 m, per sequence:
 
-(seq 00; the LiDAR descriptor is also evaluated across 5 loop sequences above.)
+| sequence | LiDAR (Scan-Context) | Camera (ResNet-18) |
+|---|---|---|
+| 00                      | 0.913 | 0.923 |
+| 05                      | 0.783 | 0.848 |
+| 06                      | 0.887 | **0.977** |
+| 07 (few revisits)       | 0.596 | 0.500 |
+| 08 (**reverse** loops)  | **0.339** | **0.015** |
+| **mean**                | **0.704** | 0.653 |
+
+**The headline is seq 08.** Its revisits are reverse-direction. A forward-facing
+**camera** then sees the opposite view of the place and collapses to R@1 = 0.015
+(near-zero) — appearance simply cannot bridge a 180° viewpoint flip. The **LiDAR**
+descriptor is 360° and rotation-invariant (ring-key + Scan-Context column shift),
+so it still recovers R@1 = 0.339 on the very same revisits. On forward loops the
+camera is often the stronger of the two (seq 06: 0.977 vs 0.887).
+
+No single sensor wins everywhere — which is the argument for a modality-agnostic
+comparison framework rather than a LiDAR-only or camera-only one.
 
 ## Notes on honesty
 
