@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from bevmatch.alignment.base import Aligner
 from bevmatch.alignment.se2 import SE2Aligner
-from bevmatch.change.bev_diff import ChangeConfig, detect_changes
+from bevmatch.change.bev_diff import ChangeConfig, detect_changes_detailed
 from bevmatch.core.datamodel import Scene
 from bevmatch.core.evidence import ComparisonEvidenceBundle
 from bevmatch.retrieval.retriever import SceneDatabase
@@ -60,13 +60,16 @@ class SamePlaceComparisonPipeline:
 
         # Principle 3: only assert changes when alignment is trustworthy.
         if alignment.success:
-            bundle.changes = detect_changes(
+            result = detect_changes_detailed(
                 query_scene.primary().xy(),
                 ref_scene.primary().xy(),
                 alignment.relative_pose,
                 self.change_config,
                 align_overlap=alignment.overlap_ratio,
             )
+            bundle.changes = result.changes
+            bundle.uncertainty["comparable_ratio"] = result.comparable_ratio
+            bundle.uncertainty["occluded_ratio"] = result.occluded_ratio
         else:
             bundle.uncertainty["note"] = (
                 "alignment failed; change detection suppressed to avoid false changes"

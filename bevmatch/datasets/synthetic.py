@@ -110,6 +110,156 @@ def _build_query_scene(
     return scene, t_wq, added_centers, removed_centers
 
 
+@dataclass
+class ChangeCase:
+    """A reference scene + a burst of query frames with stable and dynamic changes."""
+
+    reference: Scene
+    query_frames: list[Scene]
+    gt_relative_pose: Pose2D
+    added_centers: np.ndarray  # stable, actionable (world frame)
+    removed_centers: np.ndarray  # stable, actionable (world frame)
+    dynamic_centers_per_frame: list[np.ndarray]  # moving / transient (world frame)
+
+
+@dataclass
+class OcclusionCase:
+    """A pair where the query has an occluder hiding objects the reference saw."""
+
+    reference: Scene
+    query: Scene
+    gt_relative_pose: Pose2D
+    removed_centers: np.ndarray  # truly removed -> should be reported
+    occluded_centers: np.ndarray  # hidden behind the occluder -> must NOT be reported
+
+
+def make_synthetic_change_case(
+    seed: int = 3,
+    n_frames: int = 4,
+    n_added: int = 2,
+    n_removed: int = 2,
+    n_dynamic: int = 2,
+) -> ChangeCase:
+    """Reference + multi-frame query burst: stable changes vs moving dynamics."""
+    rng = np.random.default_rng(seed)
+    world = _place_centers(rng, int(rng.integers(18, 24)))
+
+    removed_idx = rng.choice(len(world), size=n_removed, replace=False)
+    removed_centers = world[removed_idx]
+    keep = np.ones(len(world), dtype=bool)
+    keep[removed_idx] = False
+    kept = world[keep]
+
+    added_centers = _place_centers(rng, n_added, extent=16.0, keepout=6.0)
+
+    reference = Scene(
+        scene_id="ref",
+        place_id="place_x",
+        timestamp=0.0,
+        pose=Pose2D(),
+        observations={MODALITY: Observation(MODALITY, _points_from_centers(rng, world))},
+        metadata={"role": "historical"},
+    )
+
+    t_wq = Pose2D(x=float(rng.uniform(-2, 2)), y=float(rng.uniform(-2, 2)),
+                  yaw=float(np.deg2rad(rng.uniform(-20, 20))))
+
+    # Dynamic objects must stay clear of the static layout, else a moving object
+    # landing on a removed/added spot would corrupt that stable detection.
+    static_centers = np.vstack([world, added_centers])
+
+    def _dynamic_centers() -> np.ndarray:
+        picks: list[np.ndarray] = []
+        while len(picks) < n_dynamic:
+            c = rng.uniform(-15.0, 15.0, size=2)
+            if np.hypot(*c) < 6.0:
+                continue
+            if len(static_centers) and np.min(np.linalg.norm(static_centers - c, axis=1)) < 4.0:
+                continue
+            if picks and np.min(np.linalg.norm(np.array(picks) - c, axis=1)) < 4.0:
+                continue
+            picks.append(c)
+        return np.array(picks)
+
+    query_frames: list[Scene] = []
+    dynamic_per_frame: list[np.ndarray] = []
+    for f in range(n_frames):
+        dynamic = _dynamic_centers()
+        dynamic_per_frame.append(dynamic)
+        world_pts = _points_from_centers(rng, np.vstack([kept, added_centers, dynamic]))
+        local = t_wq.inverse().transform(world_pts)
+        query_frames.append(
+            Scene(
+                scene_id=f"query_f{f}",
+                place_id="place_x",
+                timestamp=float(10 + f),
+                pose=t_wq,
+                observations={MODALITY: Observation(MODALITY, local)},
+                metadata={"role": "query", "frame": f},
+            )
+        )
+
+    return ChangeCase(
+        reference=reference,
+        query_frames=query_frames,
+        gt_relative_pose=t_wq,
+        added_centers=added_centers,
+        removed_centers=removed_centers,
+        dynamic_centers_per_frame=dynamic_per_frame,
+    )
+
+
+def _wall_points(rng: np.random.Generator, x: float, y0: float, y1: float, step: float = 0.15) -> np.ndarray:
+    ys = np.arange(y0, y1, step)
+    xs = np.full_like(ys, x)
+    pts = np.stack([xs, ys], axis=1)
+    return pts + rng.normal(scale=0.05, size=pts.shape)
+
+
+def make_occlusion_case(seed: int = 5) -> OcclusionCase:
+    """Query gains an occluder that hides reference objects (occlusion vs removal)."""
+    rng = np.random.default_rng(seed)
+
+    # Common objects, kept clear of the occluder shadow (azimuth +/-45 deg, far).
+    common = []
+    while len(common) < 16:
+        c = rng.uniform(-18, 18, size=2)
+        r, az = np.hypot(*c), abs(np.degrees(np.arctan2(c[1], c[0])))
+        if r < 4:
+            continue
+        if az < 45 and c[0] > 4:  # would be in the occluder shadow
+            continue
+        common.append(c)
+    common = np.array(common)
+
+    # Behind-wall objects: only the reference sees them.
+    occluded_centers = np.array([[13.0, -1.0], [15.0, 1.2]])
+    # A genuinely removed object, out of the shadow.
+    removed_centers = np.array([[-10.0, 6.0]])
+
+    ref_centers = np.vstack([common, removed_centers, occluded_centers])
+    ref_pts = _points_from_centers(rng, ref_centers)
+
+    wall = _wall_points(rng, x=4.0, y0=-3.0, y1=3.0)
+    query_pts = np.vstack([_points_from_centers(rng, common), wall])
+
+    reference = Scene(
+        scene_id="occ_ref", place_id="place_occ", timestamp=0.0, pose=Pose2D(),
+        observations={MODALITY: Observation(MODALITY, ref_pts)}, metadata={"role": "historical"},
+    )
+    query = Scene(
+        scene_id="occ_query", place_id="place_occ", timestamp=1.0, pose=Pose2D(),
+        observations={MODALITY: Observation(MODALITY, query_pts)}, metadata={"role": "query"},
+    )
+    return OcclusionCase(
+        reference=reference,
+        query=query,
+        gt_relative_pose=Pose2D(),
+        removed_centers=removed_centers,
+        occluded_centers=occluded_centers,
+    )
+
+
 def make_synthetic_route(
     seed: int = 0,
     n_places: int = 12,
