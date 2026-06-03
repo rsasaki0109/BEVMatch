@@ -17,8 +17,8 @@ Query Scene
 
 ## Status
 
-v0.8 — benchmark suite（retrieval / alignment / change / map の pipeline-level 評価、dataset cards、再現可能な split manifest（fingerprint）、leaderboard 出力、外部 submission マージ）。
-v0.7 Autoware/Nav2 adapters、v0.6 ROS2 integration、v0.5 map validation、v0.4 change detection、v0.3 alignment、v0.2 retrieval、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
+v0.9 — multi-modal expansion（camera / radar / LiDAR の modality-agnostic retrieval、semantic BEV、object-level change（added/removed/moved/class-changed）、scene graph、自然言語レポート）。BEV/LiDAR-only ではないことを実証（Principle 2）。
+v0.8 benchmark suite、v0.7 Autoware/Nav2 adapters、v0.6 ROS2 integration、v0.5 map validation、v0.4 change detection、v0.3 alignment、v0.2 retrieval、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
 
 ## Quickstart
 
@@ -199,6 +199,29 @@ retrieval board with external submission:
 - **再現可能な split manifest**：seed から決定的に生成し、ground-truth の **fingerprint(sha256)** で再現性を検証。
 - **leaderboard**：task ごとに primary metric でランク。`SubmissionEntry` で外部 plugin の結果を同一 board に統合。
 
+### Multi-modal expansion (v0.9)
+
+```bash
+python examples/run_multimodal.py
+```
+
+BEVMatch は BEV/LiDAR 専用ではありません（§1.3, Principle 2）。
+
+```text
+Modality-agnostic retrieval:
+  LiDAR  (Scan-Context BEV): place_2 [OK]
+  Radar  (-> BEV occupancy): place_2 [OK]
+  Camera (image embedding) : place_2 [OK]
+
+Object-level change:  class_changed(pole->building), moved(vehicle 2.0m), added(vehicle), removed(vehicle)
+NL summary: "An object 18 m to the east changed from pole to building. A vehicle moved 2.0 m ..."
+```
+
+- **modality**（camera/radar/LiDAR）と **representation**（BEV / image embedding）を分離。
+  `CameraEmbeddingDescriptor`、radar→BEV、`SemanticBEV` を提供。
+- **object-level change**（`detect_object_changes`）：added / removed / moved / class-changed。
+- **scene graph**（`build_scene_graph`）と **自然言語サマリ**（`bevmatch.nl`、VLM/LLM に差し替え可能）。
+
 ### Library 利用
 
 ```python
@@ -234,6 +257,8 @@ Query LiDAR scene
 | `bevmatch.integrations` | Autoware / Nav2 アダプタ（initial pose / health / staleness）(§17, §18) |
 | `bevmatch.eval` | retrieval / alignment / change / map メトリクス (§13) |
 | `bevmatch.benchmarks` | dataset cards / 再現 split / suite / leaderboard (§0.8, §13) |
+| `bevmatch.sensors` | camera / radar アダプタ（modality-agnostic）(§1.3, Principle 2) |
+| `bevmatch.scene_graph` / `bevmatch.nl` | object scene graph / 自然言語サマリ (§5.4, §0.9) |
 | `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
 | `bevmatch.io` | evidence エクスポート (§16.4) |

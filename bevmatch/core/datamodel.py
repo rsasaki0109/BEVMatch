@@ -112,11 +112,19 @@ class PoseSE3:
 
 @dataclass
 class Observation:
-    """A single-modality (near-)raw observation belonging to a Scene (§5.3)."""
+    """A single-modality (near-)raw observation belonging to a Scene (§5.3).
+
+    Modality is decoupled from representation (Principle 2): ``points`` carries
+    geometry (LiDAR / radar / depth), ``labels`` optional per-point semantic
+    classes, and ``embedding`` a global descriptor vector (e.g. a camera image
+    embedding). A given Scene may hold several modalities at once.
+    """
 
     modality: str
-    points: np.ndarray  # (N, 2) ground-projected points for the v0.1 LiDAR-BEV path
+    points: np.ndarray  # (N, 2/3) ground-projected points; may be empty for camera
     metadata: dict[str, Any] = field(default_factory=dict)
+    labels: np.ndarray | None = None  # (N,) per-point semantic class id
+    embedding: np.ndarray | None = None  # global descriptor vector (camera, etc.)
 
     def xy(self) -> np.ndarray:
         pts = np.asarray(self.points, dtype=float)
