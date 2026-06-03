@@ -17,6 +17,8 @@ dependencies = ["numpy>=1.23"]
 viz = ["matplotlib>=3.6"]
 faiss = ["faiss-cpu>=1.7"]
 dev = ["pytest>=7.0"]
+# ROS2 integration (bevmatch.ros.node) needs rclpy, provided by a ROS2 install
+# (e.g. ROS2 Jazzy), not pip. The pure-Python bevmatch.ros bridge needs nothing.
 
 [project.urls]
 Documentation = "https://github.com/your-org/BEVMatch/blob/main/docs/architecture.md"

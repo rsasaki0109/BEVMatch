@@ -17,8 +17,8 @@ Query Scene
 
 ## Status
 
-v0.5 — map validation MVP（point cloud / occupancy / vector map validator、issue severity schema、stale region report、human-review export、issue precision/recall 評価）。
-v0.4 change detection（occlusion-aware comparable region、temporal persistence）、v0.3 alignment framework（SE2/SE3、failure classification）、v0.2 retrieval framework（descriptor / index プラグイン、Recall@K/MRR）、v0.1 MVP パイプラインも合成データでエンドツーエンド動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
+v0.6 — ROS2 integration（lifecycle-managed bag replay、TF tree、diagnostics、RViz/Foxglove markers、rclpy LifecycleNode）。Core は ROS2 非依存のまま、ROS2 統合を first-class で提供（§16.1）。
+v0.5 map validation（validator + severity + review report）、v0.4 change detection（occlusion-aware + persistence）、v0.3 alignment（SE2/SE3 + failure）、v0.2 retrieval（descriptor/index プラグイン）、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（可視化は任意で `matplotlib`、index は任意で `faiss-cpu`、ROS2 ノードは任意で `rclpy`）。
 
 ## Quickstart
 
@@ -126,6 +126,33 @@ issue P/R/F1 = 1.00/1.00/1.00     fresh map -> 0 issues
 - `out/map_validation_review.md`（人手レビュー用）と `out/map_validation_report.json` を出力。
 - 既存の Lanelet2 構文 validator を置き換えず、**observation-to-map consistency** を担う（§12.5）。
 
+### ROS2 integration (v0.6)
+
+Core は ROS2 非依存。bag replay は ROS2 なしで動きます（offline-first, §16.1）。
+
+```bash
+python examples/run_ros_replay.py        # ROS2 不要: lifecycle bag replay
+```
+
+```text
+lifecycle: unconfigured -> inactive -> active
+[t=10.0] query_0  match=place_4  changes=3  markers=3  diag={retrieval:OK, alignment:OK, change:WARN}
+...
+lifecycle: -> finalized
+```
+
+ROS2 環境がある場合は rclpy LifecycleNode を起動できます（`MarkerArray` /
+`DiagnosticArray` / `PoseWithCovarianceStamped` を publish）。
+
+```bash
+python examples/ros2_lifecycle_node.py   # 要 ROS2 (rclpy): configure -> activate -> publish
+ros2 topic echo /bevmatch/markers
+```
+
+- `bevmatch.ros`：TF tree（`map→odom→base_link→sensor`）、diagnostics、markers、
+  lifecycle `BagReplayPipeline`（すべて純 Python・テスト可能）。
+- `bevmatch.ros.node`：rclpy `LifecycleNode`（ROS2 がある時のみ import）。
+
 ### Library 利用
 
 ```python
@@ -157,6 +184,7 @@ Query LiDAR scene
 | `bevmatch.alignment` | SE2/SE3 aligner プラグイン（BEV相互相関 + ICP）+ failure 分類 (§10, §7.2) |
 | `bevmatch.change` | occlusion-aware diff + comparable region + persistence (§11) |
 | `bevmatch.maps` | map 検証 validator + issue severity + review report (§12) |
+| `bevmatch.ros` | ROS2 統合: TF / diagnostics / markers / lifecycle replay / node (§16) |
 | `bevmatch.eval` | retrieval / alignment / change / map メトリクス (§13) |
 | `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
