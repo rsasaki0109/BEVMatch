@@ -27,7 +27,8 @@ class SamePlaceComparisonPipeline:
     def run(self, query_scene: Scene) -> ComparisonEvidenceBundle:
         bundle = ComparisonEvidenceBundle(query_scene_id=query_scene.scene_id)
         bundle.provenance = {
-            "descriptor": "scan-context-ring-key",
+            "descriptor": self.database.descriptor.name,
+            "index": self.database.index.name,
             "aligner": "se2-bev-xcorr",
             "change_detector": "bev-occupancy-diff",
             "top_k": self.top_k,

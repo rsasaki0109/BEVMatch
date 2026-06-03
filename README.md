@@ -17,7 +17,8 @@ Query Scene
 
 ## Status
 
-v0.1 MVP — 合成データでエンドツーエンドに動作（retrieval → alignment → change diff → evidence）。依存は `numpy` のみ（可視化は任意で `matplotlib`）。
+v0.2 — retrieval framework（descriptor プラグイン化、index backend 抽象化、Recall@K/MRR 評価）。
+v0.1 MVP のパイプライン（retrieval → alignment → change diff → evidence）も合成データでエンドツーエンドに動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
 
 ## Quickstart
 
@@ -38,6 +39,25 @@ Best match: hist_2 (place=place_2, scan-context, score=0.87)
 Alignment: x=-1.04 m, y=+1.21 m, yaw=-1.1 deg, overlap=75%, inliers=90%
 Changes: 2 added, 2 removed
 ```
+
+### Retrieval benchmark (v0.2)
+
+```bash
+python examples/run_retrieval_eval.py
+```
+
+同一ルート上で descriptor を差し替えて Recall@K / MRR を比較します。
+rotation-invariant な Scan-Context が、revisit yaw 下で BEV-grid を上回ることを示します。
+
+```text
+descriptor      index         R@1  R@5  MRR
+----------------------------------------
+scan-context    brute-force   0.833  0.958  0.875
+bev-grid        brute-force   0.417  0.583  0.481
+```
+
+descriptor（`GlobalDescriptor`）と index backend（`IndexBackend`）はプラグインで、
+`SceneDatabase(descriptor=..., index=...)` で差し替えられます（FAISS は `make_index("faiss")`）。
 
 ### Library 利用
 
@@ -66,10 +86,11 @@ Query LiDAR scene
 | --- | --- |
 | `bevmatch.core` | データモデル・evidence schema・plugin registry・pipeline (§5, §6, §7, §8) |
 | `bevmatch.representations` | BEV occupancy 表現 (§5.4) |
-| `bevmatch.retrieval` | Scan-Context descriptor + Top-K retriever (§9) |
+| `bevmatch.retrieval` | descriptor / index プラグイン + Top-K retriever (§9, §7.2) |
 | `bevmatch.alignment` | SE2 alignment（BEV相互相関 + ICP refine）(§10) |
 | `bevmatch.change` | geometry-level BEV occupancy diff (§11) |
-| `bevmatch.datasets` | 合成 same-place ベンチマーク (§14) |
+| `bevmatch.eval` | retrieval メトリクス（Recall@K/MRR）と評価レシピ (§13) |
+| `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
 | `bevmatch.io` | evidence エクスポート (§16.4) |
 
 ## Documentation
