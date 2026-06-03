@@ -5,6 +5,7 @@ from bevmatch.eval.alignment_eval import (
     evaluate_alignment,
     pose_errors,
 )
+from bevmatch.eval.change_eval import ChangePRF, change_prf, false_changes
 from bevmatch.eval.metrics import (
     mean_reciprocal_rank,
     precision_at_k,
@@ -21,4 +22,7 @@ __all__ = [
     "evaluate_alignment",
     "AlignmentReport",
     "pose_errors",
+    "change_prf",
+    "ChangePRF",
+    "false_changes",
 ]

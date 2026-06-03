@@ -214,14 +214,25 @@ class AlignmentHypothesis:
 
 @dataclass
 class ChangeHypothesis:
-    """A candidate change derived from an aligned comparison (§5.7, §11.4)."""
+    """A candidate change derived from an aligned comparison (§5.7, §11.4).
 
-    category: str  # "added" | "removed" (v0.1 geometry-level)
+    ``category`` is "added" / "removed" for actionable geometry changes, or
+    "dynamic" for transient detections filtered by temporal persistence (§11.3).
+    ``persistence`` is the fraction of observations supporting the change.
+    """
+
+    category: str
     centroid_xy: tuple[float, float]  # in the historical frame, metres
     area_m2: float
     num_cells: int
     confidence: float
     bbox_xy: tuple[float, float, float, float] | None = None  # (xmin, ymin, xmax, ymax)
+    persistence: float = 1.0
+    evidence: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def actionable(self) -> bool:
+        return self.category in ("added", "removed")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -230,5 +241,7 @@ class ChangeHypothesis:
             "area_m2": round(float(self.area_m2), 3),
             "num_cells": int(self.num_cells),
             "confidence": round(float(self.confidence), 4),
+            "persistence": round(float(self.persistence), 4),
             "bbox_xy": [round(float(b), 3) for b in self.bbox_xy] if self.bbox_xy else None,
+            "evidence": self.evidence,
         }

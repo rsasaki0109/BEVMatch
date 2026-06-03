@@ -17,8 +17,8 @@ Query Scene
 
 ## Status
 
-v0.3 — alignment framework（SE2/SE3 aligner プラグイン、richer alignment evidence、overlap 推定、failure classification、translation/rotation error 評価、残差可視化）。
-v0.2 retrieval framework（descriptor / index プラグイン、Recall@K/MRR 評価）、v0.1 MVP パイプライン（retrieval → alignment → change diff → evidence）も合成データでエンドツーエンド動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
+v0.4 — change detection MVP（occlusion-aware comparable region、temporal persistence による dynamic filtering、instance precision/recall 評価、before/after viewer）。
+v0.3 alignment framework（SE2/SE3 aligner、failure classification、pose error 評価）、v0.2 retrieval framework（descriptor / index プラグイン、Recall@K/MRR）、v0.1 MVP パイプラインも合成データでエンドツーエンド動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
 
 ## Quickstart
 
@@ -81,6 +81,28 @@ SE3 degeneracy (planar scene): unobservable=['z','roll','pitch']
 aligner（`Aligner`）もプラグインで、`SamePlaceComparisonPipeline(aligner=...)` や
 `evaluate_alignment(...)` で差し替えられます。
 
+### Change benchmark (v0.4)
+
+```bash
+python examples/run_change_eval.py
+```
+
+§11 の「observed difference ≠ actionable change」を2点で実証します。
+
+```text
+=== Persistence (dynamic filtering) ===          # 複数フレームで移動物体を除外
+actionable: added P/R=1.00/1.00 removed P/R=1.00/1.00  dynamic filtered=7
+false actionable changes=0
+
+=== Occlusion vs removal ===                     # 遮蔽を「削除」と誤らない
+use_occlusion=False: removed=3 (occluded mis-reported=2)
+use_occlusion=True:  removed=1 (occluded mis-reported=0)  occluded=0.33
+```
+
+- **comparable region**：両シーンが観測した領域のみ比較（polar ray-cast による遮蔽推定）。
+- **temporal persistence**：複数フレームで持続する変化のみ actionable とし、移動物体は `dynamic` として除外。
+- `out/change_evidence.png` に before/after + 変化エビデンスの4面ビューを出力。
+
 ### Library 利用
 
 ```python
@@ -110,7 +132,7 @@ Query LiDAR scene
 | `bevmatch.representations` | BEV occupancy 表現 (§5.4) |
 | `bevmatch.retrieval` | descriptor / index プラグイン + Top-K retriever (§9, §7.2) |
 | `bevmatch.alignment` | SE2/SE3 aligner プラグイン（BEV相互相関 + ICP）+ failure 分類 (§10, §7.2) |
-| `bevmatch.change` | geometry-level BEV occupancy diff (§11) |
+| `bevmatch.change` | occlusion-aware diff + comparable region + persistence (§11) |
 | `bevmatch.eval` | retrieval / alignment メトリクスと評価レシピ (§13) |
 | `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
