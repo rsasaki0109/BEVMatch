@@ -203,32 +203,42 @@ comparison framework rather than a LiDAR-only or camera-only one.
 ## Fusion — combining the two is not a free lunch
 
 If the modalities fail differently, does fusing them recover the blind cases? We
-test two ground-truth-free late-fusion strategies over the *same* rankings
+test three ground-truth-free late-fusion strategies over the *same* rankings
 (`python scripts/benchmark_kitti_fusion.py`): equal-weight **Reciprocal Rank
-Fusion**, and a **confidence gate** that, per query, trusts whichever sensor has
-the larger top-1-vs-top-2 score margin (Lowe-style, normalised per modality).
+Fusion**; a **confidence gate** (per query, trust whichever sensor has the larger
+top-1-vs-top-2 score margin, Lowe-style); and **geometric verification** (trust
+the camera's proposed place only if its two LiDAR scans align almost as well as
+LiDAR's own best — Scan-Context distance within ALPHA = 1.3 — else fall back to
+LiDAR).
 
-| seq | LiDAR | Camera (EigenPlaces) | naive RRF | confidence-gated |
-|---|---|---|---|---|
-| 00 | 0.913 | 0.957 | 0.957 | 0.939 |
-| 05 | 0.783 | 0.914 | 0.819 | 0.841 |
-| 06 | 0.887 | 0.977 | 0.904 | 0.927 |
-| 07 | 0.596 | 0.681 | **0.713** | 0.660 |
-| 08 (**reverse**) | **0.339** | 0.015 | 0.081 | 0.203 |
-| **mean** | 0.704 | 0.709 | 0.695 | **0.714** |
+| seq | LiDAR | Camera | naive RRF | conf-gated | **geo-verified** |
+|---|---|---|---|---|---|
+| 00 | 0.913 | 0.957 | 0.957 | 0.939 | **0.963** |
+| 05 | 0.783 | 0.914 | 0.819 | 0.841 | **0.922** |
+| 06 | 0.887 | 0.977 | 0.904 | 0.927 | **0.943** |
+| 07 | 0.596 | 0.681 | 0.713 | 0.660 | **0.723** |
+| 08 (**reverse**) | 0.339 | 0.015 | 0.081 | 0.203 | **0.343** |
+| **mean** | 0.704 | 0.709 | 0.695 | 0.714 | **0.779** |
 
 Full numbers in [`docs/assets/kitti_fusion_results.json`](assets/kitti_fusion_results.json).
 
 - **Naive equal-weight RRF is a net loss** (mean 0.695, below both single
   modalities): on seq 08 the blind camera drags LiDAR down from 0.339 to 0.081.
-- **The confidence gate is the best on average** (0.714) — robust, never
-  catastrophic — **but still does not recover the blind case** (seq 08 → 0.203,
-  short of LiDAR's 0.339; the gate picks the blind camera ~49% of the time
-  because a within-sequence self-normalised margin can't encode global blindness).
+- **The confidence gate only buys robustness** (mean 0.714, never catastrophic)
+  but **does not recover the blind case** (seq 08 → 0.203): score magnitude can't
+  tell "confidently wrong" from "confidently right" (the camera's mean top-1
+  cosine is even *higher* on the blind seq 08 than on the working seq 07).
+- **Geometric verification wins on every sequence** (mean **0.779**, +0.07 over
+  either modality) and **fully recovers the blind case** (seq 08 = 0.343 ≈ LiDAR's
+  0.339): the camera's geometrically-wrong reverse-loop proposal fails the
+  alignment check and is rejected (camera accepted on 16% of seq 08 queries vs 53%
+  on camera-strong seq 06), while its correct forward-loop proposals are kept,
+  lifting seq 00/05 above LiDAR.
 
-The honest takeaway: late fusion of a working and a blind sensor is not
-automatically better than the working one; recovering the blind case needs
-**absolute cross-modal confidence calibration**, not naive score combination.
+The honest takeaway: fusing *scores* doesn't beat the better sensor; fusing on
+**geometric verification** — trust a match only when the geometry confirms it —
+turns two individually-limited sensors into a retriever that beats both. That is
+why the framework is retrieve → align → evidence, not retrieval score alone.
 Full reasoning in [Two findings → Finding 3](findings.md).
 
 ## Notes on honesty
