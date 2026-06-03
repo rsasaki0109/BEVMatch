@@ -17,8 +17,10 @@ Query Scene
 
 ## Status
 
-v0.9 — multi-modal expansion（camera / radar / LiDAR の modality-agnostic retrieval、semantic BEV、object-level change（added/removed/moved/class-changed）、scene graph、自然言語レポート）。BEV/LiDAR-only ではないことを実証（Principle 2）。
-v0.8 benchmark suite、v0.7 Autoware/Nav2 adapters、v0.6 ROS2 integration、v0.5 map validation、v0.4 change detection、v0.3 alignment、v0.2 retrieval、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
+**v1.0 — Stable Same-Place Comparison Platform** 🎉 ロードマップ v0.1→v1.0 完了。
+安定化済みの **artifact schema**（`bevmatch.schema`）、**plugin manifest**（`bevmatch.plugins`, §7.3）、**benchmark protocol**、再現可能 demo suite、ドキュメント一式を備えます。
+
+retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2 → benchmark → multi-modal の全レイヤが合成データでエンドツーエンド動作（テスト 73 件全パス）。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
 
 ## Quickstart
 
@@ -259,13 +261,32 @@ Query LiDAR scene
 | `bevmatch.benchmarks` | dataset cards / 再現 split / suite / leaderboard (§0.8, §13) |
 | `bevmatch.sensors` | camera / radar アダプタ（modality-agnostic）(§1.3, Principle 2) |
 | `bevmatch.scene_graph` / `bevmatch.nl` | object scene graph / 自然言語サマリ (§5.4, §0.9) |
+| `bevmatch.schema` / `bevmatch.plugins` | 安定 artifact schema / plugin manifest (§7.3, §21) |
 | `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
 | `bevmatch.io` | evidence エクスポート (§16.4) |
 
+### Stability & contribution (v1.0)
+
+- **artifact schema**：`bevmatch.schema`（`ARTIFACT_SCHEMA_VERSION=1.0`）。same major = 互換（additive）。`validate_artifact` / `envelope` / `require_compatible`。
+- **plugin manifest**：`bevmatch.plugins`（§7.3）— capability 宣言（modality / representation / invariance / uncertainty / failure modes / license）。plugin 追加には manifest 必須。
+- **benchmark protocol**：`BENCHMARK_PROTOCOL_VERSION` + dataset fingerprint で比較可能性を担保。
+- **reproducible demo suite**：`python examples/run_all_demos.py`（release gate）。
+
+```python
+from bevmatch.schema import validate_artifact, require_compatible
+require_compatible(bundle["schema_version"])            # major 不一致なら例外
+assert validate_artifact("comparison_evidence_bundle", bundle) == []
+```
+
 ## Documentation
 
 - [Master Architecture Design Document](docs/architecture.md) — 全体設計、データモデル、plugin / pipeline 設計、評価、ROS2 / Autoware / Nav2 連携、ロードマップ。
+- [CONTRIBUTING](CONTRIBUTING.md) — plugin の追加方法、設計原則、benchmark 提出。
+- [GOVERNANCE](GOVERNANCE.md) — ライセンス・バージョニング・リリース方針。
+- [API compatibility policy](docs/api_compatibility.md) — artifact レベルの互換性ポリシー。
+- [Plugin authoring guide](docs/plugin_authoring.md) — descriptor / aligner の実装例。
+- [CHANGELOG](CHANGELOG.md) — v0.1 → v1.0 の変更履歴。
 
 詳細な MVP スコープは [§22 Recommended MVP Scope](docs/architecture.md#22-recommended-mvp-scope) を参照。
 

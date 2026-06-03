@@ -8,6 +8,7 @@ shared protocol (§20.5 community strategy).
 
 from bevmatch.benchmarks.cards import CARDS, DatasetCard, get_card
 from bevmatch.benchmarks.leaderboard import (
+    BENCHMARK_PROTOCOL_VERSION,
     SubmissionEntry,
     format_full_leaderboard,
     format_leaderboard,
@@ -42,4 +43,5 @@ __all__ = [
     "format_full_leaderboard",
     "leaderboard_rows",
     "SubmissionEntry",
+    "BENCHMARK_PROTOCOL_VERSION",
 ]
