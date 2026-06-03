@@ -260,6 +260,146 @@ def make_occlusion_case(seed: int = 5) -> OcclusionCase:
     )
 
 
+SEMANTIC_CLASSES = ("building", "pole", "vehicle", "sign", "vegetation")
+
+
+@dataclass
+class MultiModalPlaces:
+    """Per-modality historical scenes + a query revisit (cross-modality retrieval)."""
+
+    lidar_hist: list[Scene]
+    lidar_query: Scene
+    radar_hist: list[Scene]
+    radar_query: Scene
+    camera_hist: list[Scene]
+    camera_query: Scene
+    gt_place_id: str
+
+
+@dataclass
+class ObjectChangeCase:
+    """Object instances + LiDAR for an aligned object-level change comparison."""
+
+    ref_objects: list  # list[ObjectInstance]
+    query_objects: list  # list[ObjectInstance] in the query frame
+    ref_lidar: Scene
+    query_lidar: Scene
+    gt_relative_pose: Pose2D
+    gt_object_changes: list[tuple[str, str, np.ndarray]]  # (category, class, location)
+
+
+def _radar_targets(rng: np.random.Generator, lidar_xy: np.ndarray, keep_frac: float = 0.4) -> np.ndarray:
+    """Sparser, noisier radar returns from a LiDAR-like point set."""
+    if len(lidar_xy) == 0:
+        return lidar_xy
+    n = max(1, int(len(lidar_xy) * keep_frac))
+    idx = rng.choice(len(lidar_xy), size=n, replace=False)
+    return lidar_xy[idx] + rng.normal(scale=0.4, size=(n, 2))
+
+
+def make_multimodal_places(seed: int = 0, n_places: int = 6, revisit_index: int = 2) -> MultiModalPlaces:
+    """Same places observed by LiDAR, radar and camera — modality-agnostic retrieval."""
+    from bevmatch.sensors.camera import camera_scene
+    from bevmatch.sensors.radar import radar_scene
+
+    rng = np.random.default_rng(seed)
+    emb_dim = 48
+    place_centers, place_embeddings = [], []
+    lidar_hist, radar_hist, camera_hist = [], [], []
+    for p in range(n_places):
+        centers = _place_centers(rng, int(rng.integers(18, 24)))
+        place_centers.append(centers)
+        emb = rng.normal(size=emb_dim)
+        place_embeddings.append(emb)
+        pts = _points_from_centers(rng, centers)
+        lidar_hist.append(Scene(f"lidar_{p}", place_id=f"place_{p}", pose=Pose2D(),
+                                observations={MODALITY: Observation(MODALITY, pts)}))
+        radar_hist.append(radar_scene(f"radar_{p}", _radar_targets(rng, pts), place_id=f"place_{p}"))
+        camera_hist.append(camera_scene(f"camera_{p}", emb + rng.normal(scale=0.05, size=emb_dim),
+                                        place_id=f"place_{p}"))
+
+    p = revisit_index
+    t_wq = Pose2D(x=float(rng.uniform(-3, 3)), y=float(rng.uniform(-3, 3)),
+                  yaw=float(np.deg2rad(rng.uniform(-40, 40))))
+    world_pts = _points_from_centers(rng, place_centers[p])
+    q_local = t_wq.inverse().transform(world_pts)
+    lidar_query = Scene("lidar_q", place_id=f"place_{p}", pose=t_wq,
+                        observations={MODALITY: Observation(MODALITY, q_local)})
+    radar_query = radar_scene("radar_q", _radar_targets(rng, q_local), place_id=f"place_{p}")
+    camera_query = camera_scene("camera_q", place_embeddings[p] + rng.normal(scale=0.05, size=emb_dim),
+                                place_id=f"place_{p}")
+
+    return MultiModalPlaces(
+        lidar_hist=lidar_hist, lidar_query=lidar_query,
+        radar_hist=radar_hist, radar_query=radar_query,
+        camera_hist=camera_hist, camera_query=camera_query,
+        gt_place_id=f"place_{p}",
+    )
+
+
+def make_object_change_case(seed: int = 4) -> ObjectChangeCase:
+    """Reference vs query object instances with added/removed/moved/class-changed."""
+    from bevmatch.scene_graph import ObjectInstance
+
+    rng = np.random.default_rng(seed)
+    centers = _place_centers(rng, 11)
+    classes = [SEMANTIC_CLASSES[int(rng.integers(0, len(SEMANTIC_CLASSES)))] for _ in centers]
+    ref_objects = [ObjectInstance(f"o{i}", classes[i], (float(c[0]), float(c[1])))
+                   for i, c in enumerate(centers)]
+
+    # most-isolated object is removed (unambiguous)
+    d = np.linalg.norm(centers[:, None, :] - centers[None, :, :], axis=2)
+    np.fill_diagonal(d, np.inf)
+    removed_i = int(np.argmax(d.min(axis=1)))
+    moved_i = int(np.argmin([np.inf if i == removed_i else centers[i][0] for i in range(len(centers))]))
+    class_i = next(i for i in range(len(centers)) if i not in (removed_i, moved_i))
+
+    gt: list[tuple[str, str, np.ndarray]] = []
+    world_objs: list[ObjectInstance] = []
+    for i, obj in enumerate(ref_objects):
+        if i == removed_i:
+            gt.append(("removed", obj.object_class, centers[i].copy()))
+            continue
+        if i == moved_i:
+            new_xy = centers[i] + np.array([2.0, 0.0])
+            world_objs.append(ObjectInstance(obj.object_id, obj.object_class, (float(new_xy[0]), float(new_xy[1]))))
+            gt.append(("moved", obj.object_class, new_xy))
+            continue
+        if i == class_i:
+            new_cls = next(c for c in SEMANTIC_CLASSES if c != obj.object_class)
+            world_objs.append(ObjectInstance(obj.object_id, new_cls, obj.xy))
+            gt.append(("class_changed", new_cls, np.array(obj.xy)))
+            continue
+        world_objs.append(obj)
+
+    added_xy = _place_centers(rng, 1, extent=15.0, keepout=6.0)[0]
+    while np.min(np.linalg.norm(centers - added_xy, axis=1)) < 4.0:
+        added_xy = _place_centers(rng, 1, extent=15.0, keepout=6.0)[0]
+    world_objs.append(ObjectInstance("o_new", "vehicle", (float(added_xy[0]), float(added_xy[1]))))
+    gt.append(("added", "vehicle", added_xy))
+
+    # LiDAR from object centers, and the query expressed in its own frame.
+    ref_centers = np.array([o.xy for o in ref_objects])
+    world_centers = np.array([o.xy for o in world_objs])
+    ref_lidar = Scene("obj_ref", place_id="place_obj", pose=Pose2D(),
+                      observations={MODALITY: Observation(MODALITY, _points_from_centers(rng, ref_centers))})
+    t_wq = Pose2D(x=float(rng.uniform(-2, 2)), y=float(rng.uniform(-2, 2)),
+                  yaw=float(np.deg2rad(rng.uniform(-20, 20))))
+    q_local_pts = t_wq.inverse().transform(_points_from_centers(rng, world_centers))
+    query_lidar = Scene("obj_query", place_id="place_obj", pose=t_wq,
+                        observations={MODALITY: Observation(MODALITY, q_local_pts)})
+
+    q_obj_local = t_wq.inverse().transform(world_centers)
+    query_objects = [ObjectInstance(o.object_id, o.object_class, (float(p[0]), float(p[1])))
+                     for o, p in zip(world_objs, q_obj_local)]
+
+    return ObjectChangeCase(
+        ref_objects=ref_objects, query_objects=query_objects,
+        ref_lidar=ref_lidar, query_lidar=query_lidar,
+        gt_relative_pose=t_wq, gt_object_changes=gt,
+    )
+
+
 @dataclass
 class MapValidationCase:
     """A point cloud map + current observation frames, with ground-truth issues."""

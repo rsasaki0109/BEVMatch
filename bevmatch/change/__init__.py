@@ -7,6 +7,7 @@ from bevmatch.change.bev_diff import (
     detect_changes_detailed,
 )
 from bevmatch.change.comparable import ComparableRegion, Observability, comparable_region, observability
+from bevmatch.change.object_level import ObjectChange, detect_object_changes
 from bevmatch.change.persistence import PersistenceConfig, consolidate_changes
 from bevmatch.change.sequence import detect_persistent_changes
 
@@ -22,4 +23,6 @@ __all__ = [
     "PersistenceConfig",
     "consolidate_changes",
     "detect_persistent_changes",
+    "ObjectChange",
+    "detect_object_changes",
 ]
