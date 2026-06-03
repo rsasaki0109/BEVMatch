@@ -17,8 +17,8 @@ Query Scene
 
 ## Status
 
-v0.7 — Autoware / Nav2 adapters（initial pose assistance、localization health、point cloud map freshness、Lanelet2 consistency、Nav2 relocalization、occupancy staleness、changed-area annotation）。
-v0.6 ROS2 integration（lifecycle bag replay、TF、diagnostics、markers、rclpy node）、v0.5 map validation、v0.4 change detection、v0.3 alignment、v0.2 retrieval、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
+v0.8 — benchmark suite（retrieval / alignment / change / map の pipeline-level 評価、dataset cards、再現可能な split manifest（fingerprint）、leaderboard 出力、外部 submission マージ）。
+v0.7 Autoware/Nav2 adapters、v0.6 ROS2 integration、v0.5 map validation、v0.4 change detection、v0.3 alignment、v0.2 retrieval、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
 
 ## Quickstart
 
@@ -174,6 +174,31 @@ Nav2 relocalization:    AMCL initial pose = (-3.12,-1.21,-29.0deg)
 - `Nav2Adapter`：relocalization assist、`OccupancyGrid` staleness、changed-area annotation（§18.2 A–C）。
 - initial pose は alignment から **covariance**（z/roll/pitch を観測不能としてマーク）を付与。
 
+### Benchmark suite (v0.8)
+
+```bash
+python examples/run_benchmark_suite.py
+```
+
+4 タスクを同一プロトコルで評価し、leaderboard を出力します。descriptor/aligner を
+追加して再実行すれば、比較可能なエントリが得られます（§20.5）。
+
+```text
+### retrieval (ranked by recall@1)
+| rank | method       | recall@1 | recall@5 | mrr   |
+| 1    | scan-context | 0.833    | 0.958    | 0.875 |
+| 2    | bev-grid     | 0.417    | 0.583    | 0.481 |
+...（alignment / change / map_validation も同様）
+
+retrieval board with external submission:
+  1. my-paper-descriptor  R@1=0.900   ← SubmissionEntry で外部結果をマージ
+  2. scan-context         R@1=0.833
+```
+
+- **dataset cards**（`bevmatch.benchmarks.CARDS`）：各ベンチマークの内容・条件・ライセンスを記述。
+- **再現可能な split manifest**：seed から決定的に生成し、ground-truth の **fingerprint(sha256)** で再現性を検証。
+- **leaderboard**：task ごとに primary metric でランク。`SubmissionEntry` で外部 plugin の結果を同一 board に統合。
+
 ### Library 利用
 
 ```python
@@ -208,6 +233,7 @@ Query LiDAR scene
 | `bevmatch.ros` | ROS2 統合: TF / diagnostics / markers / lifecycle replay / node (§16) |
 | `bevmatch.integrations` | Autoware / Nav2 アダプタ（initial pose / health / staleness）(§17, §18) |
 | `bevmatch.eval` | retrieval / alignment / change / map メトリクス (§13) |
+| `bevmatch.benchmarks` | dataset cards / 再現 split / suite / leaderboard (§0.8, §13) |
 | `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
 | `bevmatch.io` | evidence エクスポート (§16.4) |
