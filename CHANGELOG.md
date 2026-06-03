@@ -3,6 +3,16 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.10.1 — Fusion result figure
+
+- `scripts/make_fusion_figure.py` + `docs/assets/bevmatch_fusion_summary.png`:
+  a grouped-bar figure (read from kitti_fusion_results.json, no recompute) of
+  Recall@1 @ 5 m for the two single modalities and the three fusion strategies,
+  visualising Finding 3's resolution — score-level fusion (RRF, gate) collapses on
+  the reverse loop while geometry-verified fusion wins on every sequence and fully
+  recovers seq 08.
+- README + docs/benchmarks.md: fusion figure embedded.
+
 ## 1.10.0 — Geometric-verification fusion beats both modalities (Finding 3 resolved)
 
 - `scripts/benchmark_kitti_fusion.py` adds a third strategy, **geometric

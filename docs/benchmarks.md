@@ -211,6 +211,8 @@ the camera's proposed place only if its two LiDAR scans align almost as well as
 LiDAR's own best — Scan-Context distance within ALPHA = 1.3 — else fall back to
 LiDAR).
 
+![Fusing LiDAR and camera: score-level fusion fails, geometry-verified fusion wins on every sequence](assets/bevmatch_fusion_summary.png)
+
 | seq | LiDAR | Camera | naive RRF | conf-gated | **geo-verified** |
 |---|---|---|---|---|---|
 | 00 | 0.913 | 0.957 | 0.957 | 0.939 | **0.963** |
