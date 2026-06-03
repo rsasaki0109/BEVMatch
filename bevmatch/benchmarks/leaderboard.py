@@ -10,6 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+#: Bumped when the benchmark protocol (cards, splits, metrics, ranking) changes
+#: in a way that makes prior leaderboard entries non-comparable.
+BENCHMARK_PROTOCOL_VERSION = "1.0"
+
 # task -> (primary metric, higher_is_better, displayed metric columns)
 _TASK_SPEC = {
     "retrieval": ("recall@1", True, ["recall@1", "recall@5", "mrr"]),
@@ -28,6 +32,11 @@ class SubmissionEntry:
     dataset: str
     metrics: dict[str, float]
     manifest: dict[str, Any] = field(default_factory=dict)  # plugin manifest / fingerprint
+    protocol_version: str = BENCHMARK_PROTOCOL_VERSION
+
+    def is_comparable(self) -> bool:
+        """Same major protocol version => entry is comparable on the board."""
+        return self.protocol_version.split(".")[0] == BENCHMARK_PROTOCOL_VERSION.split(".")[0]
 
     def to_result(self):
         from bevmatch.benchmarks.suite import MethodResult

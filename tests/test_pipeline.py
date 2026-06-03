@@ -55,7 +55,7 @@ def test_change_detection_finds_added_and_removed():
 def test_evidence_bundle_serialises():
     _, bundle = _run(seed=7)
     d = bundle.to_dict()
-    assert d["schema_version"] == "0.1"
+    assert d["schema_version"] == "1.0"
     assert d["best_candidate"] is not None
     assert "alignment" in d and d["alignment"]["success"] is True
 

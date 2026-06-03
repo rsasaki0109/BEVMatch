@@ -15,8 +15,9 @@ from bevmatch.core.datamodel import (
     Candidate,
     ChangeHypothesis,
 )
+from bevmatch.schema import ARTIFACT_SCHEMA_VERSION
 
-SCHEMA_VERSION = "0.1"
+SCHEMA_VERSION = ARTIFACT_SCHEMA_VERSION
 
 
 @dataclass
