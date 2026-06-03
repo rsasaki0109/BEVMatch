@@ -104,10 +104,21 @@ using no ground truth (`python scripts/benchmark_kitti_fusion.py`):
   fact "the camera is globally blind on this drive": each modality's margin is
   normalised to its own median, so neither looks unconfident in relative terms.
 
+And it goes deeper: **even absolute score magnitude does not flag the blind
+case.** The camera's mean top-1 cosine is *higher* on the blind seq 08 (0.46)
+than on seq 07 (0.41), where the camera actually works (R@1 = 0.68 vs 0.015). On
+a reverse loop the camera confidently matches a *similar-looking wrong* place, so
+its score is moderate-to-high while the retrieval is geometrically wrong —
+"confidently wrong" is indistinguishable, by score alone, from "confidently
+right". No descriptor-confidence gate (relative *or* absolute) can separate them;
+that separation requires **geometric verification** of the retrieved candidate —
+exactly the job of BEVMatch's downstream alignment + evidence stage, not the
+retrieval score.
+
 The honest lesson: **late fusion of a working and a blind sensor is not
 automatically better than using the working one** — and detecting *which* sensor
-to trust needs **absolute, cross-modal confidence calibration**, not the relative
-signals a single sequence offers. This is precisely the role a same-place
+to trust cannot come from descriptor confidence alone; it needs cross-modal
+calibration grounded in **geometric verification**, not score combination. This is precisely the role a same-place
 framework's per-modality health/evidence should play (BEVMatch's evidence bundle
 is built to carry it), and it makes *learned/calibrated* fusion — not naive
 score combination — the right next step.
@@ -123,11 +134,13 @@ score combination — the right next step.
   its five loop sequences, but cross-dataset generalisation is untested here.
 - **seq 07 is small.** 94 revisit queries; treat its absolute number as noisy
   (the *direction* of the EigenPlaces improvement is still clear).
-- **Fusion is naive, by design.** Finding 3 reports *score-level* fusion (RRF and
-  a self-normalised confidence gate). Neither uses absolute cross-modal
-  calibration or learning, which is exactly why neither fully recovers seq 08.
-  A calibrated/learned gate that can recognise a globally-blind modality is the
-  natural next experiment — this note quantifies why it is needed.
+- **Fusion is score-level, by design.** Finding 3 reports *score-level* fusion
+  (RRF and a confidence gate). The diagnostic there shows score magnitude alone
+  cannot flag the blind case (the camera is "confidently wrong"), so the next step
+  is *not* a better score gate but **geometric verification** of retrieved
+  candidates — running BEVMatch's alignment/evidence stage as the arbiter and
+  gating on whether a candidate geometrically aligns. That closes the loop this
+  note opens and is the natural next experiment.
 
 ## Reproduce
 

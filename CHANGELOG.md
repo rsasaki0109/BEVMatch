@@ -3,6 +3,17 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.9.1 — Finding 3, deepened: "confidently wrong" is unflaggable by score
+
+- docs/findings.md: a diagnostic measuring the camera's mean top-1 cosine per
+  sequence shows the blind seq 08 (0.46) scores *higher* than seq 07 (0.41) where
+  the camera works (R@1 0.68 vs 0.015). On a reverse loop the camera confidently
+  matches a similar-looking *wrong* place, so "confidently wrong" is
+  indistinguishable from "confidently right" by score alone — no
+  descriptor-confidence gate (relative or absolute) can separate them. The real
+  arbiter is **geometric verification** (BEVMatch's alignment/evidence stage),
+  which reframes the "next experiment" from a better score gate to verification.
+
 ## 1.9.0 — Late-fusion benchmark (Finding 3: fusion is not a free lunch)
 
 - `scripts/benchmark_kitti_fusion.py`: fuses BEVMatch's LiDAR Scan-Context and
