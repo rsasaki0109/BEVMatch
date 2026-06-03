@@ -1,12 +1,15 @@
-"""Generate the README hero GIF from real BEVMatch pipeline output.
+"""Generate the README hero GIF from REAL LiDAR map data + real BEVMatch output.
 
-    python scripts/make_hero_gif.py            # writes docs/assets/bevmatch_hero.gif
-    python scripts/make_hero_gif.py --preview 70   # writes a single PNG frame to inspect
+    python scripts/make_hero_gif.py                # docs/assets/bevmatch_hero.gif
+    python scripts/make_hero_gif.py --preview 80   # single PNG frame to inspect
 
-A structured "street" scene (building facades + poles) is revisited from a new
-viewpoint with a construction barrier added and a building removed. BEVMatch
-retrieves the place, aligns it (SE2), and detects the changes — the animation
-shows the actual pipeline result, not a mock-up.
+Six tiles cropped from a real 109M-point survey LiDAR map (docs/assets/
+real_map_tiles.npz, voxel-downsampled) are the place database. A real observation
+(one tile, presented at an unknown pose) is localized by BEVMatch: it retrieves
+the matching place among the real candidates and recovers the SE2 pose with
+covariance — the actual pipeline result, on real data. (The maps held no genuine
+map-to-map change, so this shows the retrieval+localization use case rather than
+a fabricated change.)
 """
 
 from __future__ import annotations
@@ -19,263 +22,164 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 from matplotlib.animation import FuncAnimation, PillowWriter  # noqa: E402
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bevmatch import SamePlaceComparisonPipeline, SceneDatabase  # noqa: E402
-from bevmatch.change import ChangeConfig  # noqa: E402
+from bevmatch.alignment import SE2Aligner  # noqa: E402
 from bevmatch.core.datamodel import Observation, Pose2D, Scene  # noqa: E402
+from bevmatch.integrations.relocalization import covariance_from_alignment  # noqa: E402
+from bevmatch.retrieval import SceneDatabase  # noqa: E402
 
-OUT = Path(__file__).resolve().parent.parent / "docs" / "assets" / "bevmatch_hero.gif"
+TILES_NPZ = ROOT / "docs" / "assets" / "real_map_tiles.npz"
+OUT = ROOT / "docs" / "assets" / "bevmatch_hero.gif"
 
-# palette (GitHub dark)
-BG = "#0d1117"
-FG = "#c9d1d9"
-MUTED = "#8b949e"
-CYAN = "#22d3ee"     # current / query
-GREEN = "#34d399"    # historical / reference
-ADDED = "#fb7185"    # added change
-REMOVED = "#c084fc"  # removed change
-ACCENT = "#58a6ff"
+BG = "#0d1117"; FG = "#c9d1d9"; MUTED = "#8b949e"
+CYAN = "#22d3ee"; GREEN = "#34d399"; ACCENT = "#f0a020"; BLUE = "#58a6ff"
+GT = 5  # query place (densest tile, retrieves cleanly)
 
 
-# --------------------------------------------------------------------------- #
-# scene generation: a street as building facades + curb poles
-# --------------------------------------------------------------------------- #
-def _facade(rng, x0, x1, y, jitter=0.05, step=0.45):
-    xs = np.arange(x0, x1, step)
-    pts = np.stack([xs, np.full_like(xs, y)], axis=1)
-    return pts + rng.normal(scale=jitter, size=pts.shape)
-
-
-def _block(rng, x0, x1, y_near, depth, side):
-    """A building footprint: road-facing facade + two short side returns."""
-    pts = [_facade(rng, x0, x1, y_near)]
-    y_far = y_near + depth * side
-    pts.append(_facade(rng, x0, x1, y_far))
-    for x in (x0, x1):
-        ys = np.arange(min(y_near, y_far), max(y_near, y_far), 0.45)
-        seg = np.stack([np.full_like(ys, x), ys], axis=1)
-        pts.append(seg + rng.normal(scale=0.05, size=seg.shape))
-    return np.vstack(pts)
-
-
-def _poles(rng, xs, y):
-    out = []
-    for x in xs:
-        out.append(rng.normal(loc=[x, y], scale=0.18, size=(10, 2)))
-    return np.vstack(out)
-
-
-def _buildings_side(rng, y_near, side):
-    """Randomly placed building footprints along one side (distinct per seed)."""
-    objs = []
-    x = rng.uniform(-25, -20)
-    while x < 22:
-        w = rng.uniform(5.5, 9.5)
-        if rng.random() < 0.78:  # sometimes a gap (side street)
-            yn = y_near + rng.uniform(-0.8, 0.8)
-            pts = _block(rng, x, x + w, y_near=yn, depth=rng.uniform(4, 6), side=side)
-            objs.append((pts, f"building_{'n' if side > 0 else 's'}"))
-        x += w + rng.uniform(2.5, 6.0)
-    return objs
-
-
-def street_objects(seed: int):
-    """Return a list of (points, kind) objects forming a distinct street layout."""
-    rng = np.random.default_rng(seed)
-    objs = []
-    objs += _buildings_side(rng, y_near=7.5, side=+1)
-    objs += _buildings_side(rng, y_near=-7.5, side=-1)
-    objs.append((_poles(rng, np.arange(-22, 24, rng.uniform(5, 7)), 5.5), "poles"))
-    objs.append((_poles(rng, np.arange(-20, 24, rng.uniform(5, 7)), -5.5), "poles"))
-    return objs
-
-
-def street_scene(seed: int) -> np.ndarray:
-    return np.vstack([pts for pts, _ in street_objects(seed)])
-
-
-def make_case():
-    """Build a small place DB + a revisit query with real changes."""
-    db_scenes = []
-    for p in range(5):
-        pts = street_scene(seed=10 + p)
-        db_scenes.append(Scene(f"hist_{p}", place_id=f"place_{p}", pose=Pose2D(), timestamp=float(p),
-                               observations={"lidar": Observation("lidar", pts)}))
-
-    revisit = 2
-    objs = street_objects(seed=10 + revisit)
-    # remove the north building whose centre is closest to x = +4
-    north = [(i, pts) for i, (pts, kind) in enumerate(objs) if kind == "building_n"]
-    rm_idx = min(north, key=lambda t: abs(t[1][:, 0].mean() - 4.0))[0]
-    removed_center = objs[rm_idx][0].mean(axis=0)
-    kept = [pts for i, (pts, _) in enumerate(objs) if i != rm_idx]
-    # add a construction barrier in the road
-    rng = np.random.default_rng(99)
-    barrier_c = np.array([-7.0, 0.0])
-    barrier = rng.normal(loc=barrier_c, scale=[1.7, 0.6], size=(46, 2))
-    world_now = np.vstack(kept + [barrier])
-    # observe from a new viewpoint
-    t_wq = Pose2D(x=2.2, y=-1.4, yaw=np.deg2rad(17.0))
-    query_local = t_wq.inverse().transform(world_now)
-    query = Scene("query", place_id=f"place_{revisit}", pose=t_wq, timestamp=99.0,
-                  observations={"lidar": Observation("lidar", query_local)})
-
+def load():
+    d = np.load(TILES_NPZ)
+    tiles = [d[f"t{k}"].astype(float) for k in range(6)]
     db = SceneDatabase()
-    db.add_all(db_scenes)
-    pipeline = SamePlaceComparisonPipeline(
-        database=db, change_config=ChangeConfig(min_cells=5, suppress_passes=2))
-    bundle = pipeline.run(query)
-    ref = db.get_scene(bundle.best_candidate.scene_id)
-    return query, ref, bundle, removed_center, barrier_c
+    for k, xy in enumerate(tiles):
+        db.add(Scene(f"tile_{k}", place_id=f"place_{k}", pose=Pose2D(),
+                     observations={"l": Observation("l", xy)}))
+    t_wq = Pose2D(4.0, -3.0, np.deg2rad(28.0))
+    q_local = t_wq.inverse().transform(tiles[GT])
+    query = Scene("obs", observations={"l": Observation("l", q_local)})
+    cand = db.query(query, top_k=1)[0]
+    ref = db.get_scene(cand.scene_id)
+    align = SE2Aligner().align(query, ref)
+    return tiles, q_local, ref.primary().xy(), cand, align
 
 
-# --------------------------------------------------------------------------- #
-# animation
-# --------------------------------------------------------------------------- #
 def _ease(t):
-    return t * t * (3 - 2 * t)  # smoothstep
+    return t * t * (3 - 2 * t)
 
 
-def _scatter(ax, pts, color, base=5, glow=22, a_core=0.9, a_glow=0.08):
-    ax.scatter(pts[:, 0], pts[:, 1], s=glow, c=color, alpha=a_glow, linewidths=0)
-    ax.scatter(pts[:, 0], pts[:, 1], s=base, c=color, alpha=a_core, linewidths=0)
-
-
-def _merge(changes, radius=7.0):
-    """Group nearby same-category change components into single markers."""
-    centers = []
-    for ch in sorted(changes, key=lambda c: c.area_m2, reverse=True):
-        c = np.array(ch.centroid_xy)
-        if all(np.hypot(*(c - np.array(m))) > radius for m in centers):
-            centers.append((float(c[0]), float(c[1])))
-    return centers
+def _scatter(ax, pts, color, base=4, glow=16, a=0.9, ag=0.07):
+    ax.scatter(pts[:, 0], pts[:, 1], s=glow, c=color, alpha=ag, linewidths=0)
+    ax.scatter(pts[:, 0], pts[:, 1], s=base, c=color, alpha=a, linewidths=0)
 
 
 def build(preview_frame=None):
-    query, ref, bundle, removed_center, barrier_c = make_case()
-    q_xy = query.primary().xy()
-    r_xy = ref.primary().xy()
-    rel = bundle.alignment.relative_pose
-    overlap = bundle.alignment.overlap_ratio
-    added = _merge(bundle.added())
-    removed = _merge(bundle.removed())
+    tiles, q_xy, r_xy, cand, align = load()
+    rel = align.relative_pose
+    cov = covariance_from_alignment(align)
+    sx, sy, syaw = cov[0] ** 0.5, cov[7] ** 0.5, np.degrees(cov[35] ** 0.5)
+    matched = int(cand.place_id.split("_")[1])
 
-    N = 96
-    fig = plt.figure(figsize=(11, 4.6), dpi=100)
+    N = 100
+    fig = plt.figure(figsize=(11, 5.4), dpi=100)
     fig.patch.set_facecolor(BG)
-    gs = fig.add_gridspec(1, 20, left=0.02, right=0.98, top=0.86, bottom=0.08, wspace=0.0)
+    gs = fig.add_gridspec(2, 20, left=0.015, right=0.985, top=0.86, bottom=0.04,
+                          height_ratios=[3.1, 1.0], hspace=0.18, wspace=0.0)
     ax = fig.add_subplot(gs[0, :13]); ax_hud = fig.add_subplot(gs[0, 13:])
-    for a in (ax, ax_hud):
-        a.set_facecolor(BG)
-        for s in a.spines.values():
-            s.set_visible(False)
-        a.set_xticks([]); a.set_yticks([])
-    ax.set_xlim(-27, 27); ax.set_ylim(-15, 15); ax.set_aspect("equal")
-    ax_hud.set_xlim(0, 1); ax_hud.set_ylim(0, 1)
+    ax_gal = fig.add_subplot(gs[1, :])
 
-    fig.text(0.03, 0.93, "BEVMatch", color=FG, fontsize=22, fontweight="bold", family="monospace")
-    fig.text(0.157, 0.935, "· same-place comparison", color=MUTED, fontsize=11, family="monospace")
-    caption = fig.text(0.03, 0.025, "", color=ACCENT, fontsize=11, family="monospace")
+    fig.text(0.018, 0.93, "BEVMatch", color=FG, fontsize=21, fontweight="bold", family="monospace")
+    fig.text(0.142, 0.935, "· localization on a real LiDAR map", color=MUTED, fontsize=11, family="monospace")
+    fig.text(0.018, 0.895, "real survey map · 109M points · 6 place tiles", color="#5a6675",
+             fontsize=8.5, family="monospace")
+    caption = fig.text(0.018, 0.008, "", color=BLUE, fontsize=11, family="monospace")
 
-    def hud_line(y, label, value, color=FG):
-        ax_hud.text(0.04, y, label, color=MUTED, fontsize=9.5, family="monospace", va="center")
-        return ax_hud.text(0.42, y, value, color=color, fontsize=9.5, family="monospace", va="center")
+    # precompute gallery thumbnails (downsampled, normalised into unit boxes)
+    thumbs = []
+    for t in tiles:
+        s = t[:: max(1, len(t) // 350)]
+        s = s - s.mean(0)
+        sc = 0.9 / (np.abs(s).max() + 1e-6)
+        thumbs.append(s * sc)
+
+    def style(a):
+        a.set_facecolor(BG); a.set_xticks([]); a.set_yticks([])
+        for sp in a.spines.values():
+            sp.set_visible(False)
 
     def draw(frame):
-        ax.cla(); ax_hud.cla()
-        for a in (ax, ax_hud):
-            a.set_facecolor(BG); a.set_xticks([]); a.set_yticks([])
-            for s in a.spines.values():
-                s.set_visible(False)
-        ax.set_xlim(-27, 27); ax.set_ylim(-15, 15); ax.set_aspect("equal")
+        for a in (ax, ax_hud, ax_gal):
+            a.cla(); style(a)
+        ax.set_xlim(-45, 45); ax.set_ylim(-45, 45); ax.set_aspect("equal")
         ax_hud.set_xlim(0, 1); ax_hud.set_ylim(0, 1)
+        ax_gal.set_xlim(0, 6); ax_gal.set_ylim(0, 1)
 
-        # grounding: road band, sensor range ring, ego marker
-        ax.axhspan(-5.6, 5.6, color="#10161f", zorder=0)
-        ax.add_patch(plt.Circle((0, 0), 26, fill=False, ec=MUTED, lw=0.8, ls=(0, (4, 4)),
-                                alpha=0.18, zorder=0))
-        ax.scatter(0, 0, s=90, marker="^", c="white", zorder=6)
-        ax.text(0, -2.3, "ego", color=MUTED, fontsize=8, ha="center", family="monospace")
+        p_obs = np.clip(frame / 14, 0, 1)
+        p_retr = np.clip((frame - 16) / 22, 0, 1)
+        p_align = np.clip((frame - 44) / 34, 0, 1)
 
-        t = frame / (N - 1)
-        # phase schedule
-        p_current = np.clip(frame / 12, 0, 1)
-        p_retr = np.clip((frame - 12) / 14, 0, 1)
-        p_align = np.clip((frame - 30) / 30, 0, 1)
-        p_change = np.clip((frame - 64) / 18, 0, 1)
+        ax.add_patch(plt.Circle((0, 0), 41, fill=False, ec=MUTED, lw=0.7, ls=(0, (4, 4)), alpha=0.16))
 
-        ax_hud.text(0.04, 0.93, "Comparison Evidence", color=FG, fontsize=10.5,
-                    family="monospace", fontweight="bold")
-        ax_hud.plot([0.04, 0.96], [0.88, 0.88], color="#21262d", lw=1)
+        # reference (matched real map tile) fades in at retrieval lock
+        if p_retr > 0.4:
+            _scatter(ax, r_xy, GREEN, base=6, glow=20,
+                     a=0.85 * min(1, (p_retr - 0.4) / 0.6), ag=0.06)
 
-        # reference (historical) fades in during retrieval
-        if p_retr > 0:
-            _scatter(ax, r_xy, GREEN, a_core=0.55 * p_retr, a_glow=0.05 * p_retr)
-
-        # current/query, animating from unaligned (identity) to recovered pose
-        n_show = int(len(q_xy) * _ease(p_current))
+        # observation, animating from as-observed pose to the recovered pose;
+        # fade as it locks so the green map stays visible underneath (= localized)
+        n_show = int(len(q_xy) * _ease(p_obs))
         if p_align <= 0:
             shown = q_xy[:n_show]
+            q_alpha = 0.85
         else:
             e = _ease(p_align)
-            inter = Pose2D(rel.x * e, rel.y * e, rel.yaw * e)
-            shown = inter.transform(q_xy)
-        _scatter(ax, shown, CYAN, a_core=0.9, a_glow=0.08)
+            shown = Pose2D(rel.x * e, rel.y * e, rel.yaw * e).transform(q_xy)
+            q_alpha = 0.85 - 0.45 * e
+        _scatter(ax, shown, CYAN, a=q_alpha, ag=0.06)
 
-        # change markers
-        if p_change > 0:
-            e = _ease(p_change)
-            pulse = 130 + 60 * np.sin(frame * 0.5)
-            for (cx, cy) in added:
-                ax.scatter(cx, cy, s=pulse * e, c=ADDED, marker="P",
-                           edgecolors="white", linewidths=1.3, zorder=5)
-                ax.text(cx, cy + 2.6, "added", color=ADDED, fontsize=9.5, ha="center",
-                        family="monospace", alpha=e, fontweight="bold")
-            for (cx, cy) in removed:
-                ax.scatter(cx, cy, s=pulse * e, c=REMOVED, marker="X",
-                           edgecolors="white", linewidths=1.3, zorder=5)
-                ax.text(cx, cy + 2.6, "removed", color=REMOVED, fontsize=9.5, ha="center",
-                        family="monospace", alpha=e, fontweight="bold")
+        # --- gallery ---
+        ax_gal.text(0.02, 1.18, "place database (real map tiles)", color=MUTED,
+                    fontsize=8.5, family="monospace", transform=ax_gal.transAxes)
+        scan = int(frame * 0.5) % 6 if 0 < p_retr < 1 else matched
+        for k, th in enumerate(thumbs):
+            cx = k + 0.5
+            ax_gal.scatter(cx + th[:, 0] * 0.42, 0.5 + th[:, 1] * 0.42, s=2,
+                           c=GREEN if k == matched else "#3b4654",
+                           alpha=0.9 if (p_retr > 0 and k == matched) else 0.5, linewidths=0)
+            highlight = (p_retr >= 1 and k == matched) or (0 < p_retr < 1 and k == scan)
+            if highlight:
+                col = ACCENT if k == matched else BLUE
+                ax_gal.add_patch(plt.Rectangle((k + 0.06, 0.04), 0.88, 0.92, fill=False,
+                                               ec=col, lw=2.0))
+            ax_gal.text(cx, 0.02, f"place_{k}", color=MUTED, fontsize=7, ha="center",
+                        family="monospace")
+        if p_retr >= 1:
+            ax_gal.text(matched + 0.5, 0.9, "match", color=ACCENT, fontsize=8.5, ha="center",
+                        family="monospace", fontweight="bold")
 
-        # HUD content
-        y = 0.78
-        if p_retr > 0:
-            score = bundle.best_candidate.score
-            ax_hud.text(0.04, y, "retrieval", color=MUTED, fontsize=9, family="monospace")
-            ax_hud.text(0.5, y, f"{bundle.best_candidate.place_id}", color=GREEN,
-                        fontsize=9.5, family="monospace")
-            ax_hud.text(0.5, y - 0.07, f"score {score:.2f}", color=FG, fontsize=8.5, family="monospace")
-        y = 0.58
+        # --- HUD ---
+        ax_hud.text(0.04, 0.95, "Localization evidence", color=FG, fontsize=10.5,
+                    family="monospace", fontweight="bold")
+        ax_hud.plot([0.04, 0.96], [0.90, 0.90], color="#21262d", lw=1)
+        if p_retr > 0.3:
+            ax_hud.text(0.04, 0.80, "retrieval", color=MUTED, fontsize=9, family="monospace")
+            ax_hud.text(0.5, 0.80, cand.place_id, color=GREEN, fontsize=9.5, family="monospace")
+            ax_hud.text(0.5, 0.74, f"score {cand.score:.2f}", color=FG, fontsize=8.5, family="monospace")
         if p_align > 0:
             e = _ease(p_align)
-            ax_hud.text(0.04, y, "alignment", color=MUTED, fontsize=9, family="monospace")
-            ax_hud.text(0.5, y, f"x {rel.x*e:+.2f} m", color=CYAN, fontsize=8.5, family="monospace")
-            ax_hud.text(0.5, y - 0.06, f"y {rel.y*e:+.2f} m", color=CYAN, fontsize=8.5, family="monospace")
-            ax_hud.text(0.5, y - 0.12, f"yaw {np.rad2deg(rel.yaw)*e:+.1f}°", color=CYAN,
-                        fontsize=8.5, family="monospace")
-            # overlap bar
-            ax_hud.text(0.04, y - 0.20, "overlap", color=MUTED, fontsize=9, family="monospace")
-            ax_hud.add_patch(plt.Rectangle((0.5, y - 0.225), 0.42, 0.035, color="#21262d"))
-            ax_hud.add_patch(plt.Rectangle((0.5, y - 0.225), 0.42 * overlap * e, 0.035, color=ACCENT))
-        y = 0.20
-        if p_change > 0:
-            ax_hud.text(0.04, y, "changes", color=MUTED, fontsize=9, family="monospace")
-            ax_hud.text(0.5, y, f"{len(added)} added", color=ADDED, fontsize=9, family="monospace")
-            ax_hud.text(0.5, y - 0.07, f"{len(removed)} removed", color=REMOVED, fontsize=9, family="monospace")
+            ax_hud.text(0.04, 0.60, "pose (map)", color=MUTED, fontsize=9, family="monospace")
+            ax_hud.text(0.5, 0.60, f"x {rel.x*e:+.2f} m", color=CYAN, fontsize=8.5, family="monospace")
+            ax_hud.text(0.5, 0.545, f"y {rel.y*e:+.2f} m", color=CYAN, fontsize=8.5, family="monospace")
+            ax_hud.text(0.5, 0.49, f"yaw {np.degrees(rel.yaw)*e:+.1f}°", color=CYAN, fontsize=8.5, family="monospace")
+            ax_hud.text(0.04, 0.40, "overlap", color=MUTED, fontsize=9, family="monospace")
+            ax_hud.add_patch(plt.Rectangle((0.5, 0.385), 0.42, 0.035, color="#21262d"))
+            ax_hud.add_patch(plt.Rectangle((0.5, 0.385), 0.42 * align.overlap_ratio * e, 0.035, color=BLUE))
+            if e > 0.6:
+                ax_hud.text(0.04, 0.26, "± cov", color=MUTED, fontsize=9, family="monospace")
+                ax_hud.text(0.5, 0.26, f"{sx:.2f} m / {syaw:.1f}°", color="#9aa4b2",
+                            fontsize=8.5, family="monospace")
+                ax_hud.text(0.04, 0.12, "→ initial pose for", color="#5a6675", fontsize=8,
+                            family="monospace")
+                ax_hud.text(0.04, 0.07, "  Autoware / Nav2", color="#5a6675", fontsize=8, family="monospace")
 
-        # captions
-        if p_change > 0:
-            cap = "3/3  comparing  ->  map-update evidence"
-        elif p_align > 0:
-            cap = "2/3  aligning  (SE2 BEV + ICP)"
+        if p_align > 0:
+            caption.set_text("2/2  aligning  ->  6-DoF initial pose")
         elif p_retr > 0:
-            cap = "1/3  retrieving the same place"
+            caption.set_text("1/2  retrieving the place in the real map")
         else:
-            cap = "current observation"
-        caption.set_text(cap)
+            caption.set_text("real LiDAR observation  ·  unknown pose")
         return []
 
     if preview_frame is not None:
@@ -284,9 +188,7 @@ def build(preview_frame=None):
         fig.savefig(png, facecolor=BG, dpi=100)
         print("preview ->", png)
         return
-
     anim = FuncAnimation(fig, draw, frames=N, interval=55, blit=False)
-    OUT.parent.mkdir(parents=True, exist_ok=True)
     anim.save(OUT, writer=PillowWriter(fps=18))
     print("gif ->", OUT, f"({OUT.stat().st_size/1e6:.2f} MB)")
 
