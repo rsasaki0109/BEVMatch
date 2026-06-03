@@ -1,10 +1,11 @@
-# Two findings from the BEVMatch benchmarks
+# Three findings from the BEVMatch benchmarks
 
 A short, honest technical note. Everything here is measured on **public KITTI
 odometry** data by BEVMatch's own retrieval pipeline, on one standard
 place-recognition protocol, and is reproducible from `scripts/`. Numbers and the
-exact protocol live in [benchmarks.md](benchmarks.md); this note is about what
-they *mean*.
+exact protocol live in [benchmarks.md](benchmarks.md); the formal, citable
+write-up with references is [report.md](report.md); this note is about what they
+*mean*.
 
 ## Setup in one paragraph
 
