@@ -260,6 +260,126 @@ def make_occlusion_case(seed: int = 5) -> OcclusionCase:
     )
 
 
+@dataclass
+class MapValidationCase:
+    """A point cloud map + current observation frames, with ground-truth issues."""
+
+    pcd_map: object  # bevmatch.maps.PointCloudMap (typed lazily to avoid import cycle)
+    occ_map: object  # bevmatch.maps.OccupancyMap
+    vmap: object  # bevmatch.maps.VectorMap
+    current_frames: list[Scene]  # current observation burst (current/local frame)
+    current_map_frame: Scene  # frame 0 expressed in the map frame (already localized)
+    gt_relative_pose: Pose2D
+    gt_issues: list[tuple[str, np.ndarray]]  # (issue_type, location in map frame)
+
+
+def make_map_validation_case(
+    seed: int = 1,
+    changed: bool = True,
+    n_frames: int = 3,
+    n_dynamic: int = 0,
+) -> MapValidationCase:
+    """Build a map + current observations where the world may have changed.
+
+    ``n_dynamic`` adds moving objects per frame (filtered by persistence); the
+    default 0 keeps the map-validation story deterministic. Dynamic filtering is
+    demonstrated separately by the change-detection case.
+    """
+    from bevmatch.maps.datamodel import MapElement, OccupancyMap, PointCloudMap, VectorMap
+
+    rng = np.random.default_rng(seed)
+    map_world = _place_centers(rng, int(rng.integers(18, 24)))
+
+    def _far_center(avoid: np.ndarray, min_dist: float = 5.0) -> np.ndarray:
+        while True:
+            c = rng.uniform(-15.0, 15.0, size=2)
+            if np.hypot(*c) < 6.0:
+                continue
+            if len(avoid) and np.min(np.linalg.norm(avoid - c, axis=1)) < min_dist:
+                continue
+            return c
+
+    gt_issues: list[tuple[str, np.ndarray]] = []
+    removed_center = None
+    added_center = None
+    if changed:
+        # Remove the most isolated object so its disappearance is unambiguous
+        # (no close neighbour to keep the vector element / region "supported").
+        d = np.linalg.norm(map_world[:, None, :] - map_world[None, :, :], axis=2)
+        np.fill_diagonal(d, np.inf)
+        ridx = int(np.argmax(d.min(axis=1)))
+        removed_center = map_world[ridx].copy()
+        keep = np.ones(len(map_world), dtype=bool)
+        keep[ridx] = False
+        kept = map_world[keep]
+        added_center = _far_center(map_world, min_dist=5.0)
+        gt_issues = [
+            ("new_static_obstacle", added_center),
+            ("missing_static_structure", removed_center),
+        ]
+    else:
+        kept = map_world
+
+    pcd_map = PointCloudMap(points=_points_from_centers(rng, map_world), map_id="map_a", version="v1")
+    occ_map = OccupancyMap.from_points(pcd_map.xy(), map_id="map_a", version="v1")
+
+    static_now = kept if added_center is None else np.vstack([kept, added_center[None, :]])
+    t_wq = Pose2D(x=float(rng.uniform(-1.5, 1.5)), y=float(rng.uniform(-1.5, 1.5)),
+                  yaw=float(np.deg2rad(rng.uniform(-15, 15))))
+
+    static_clear = np.vstack([map_world, added_center[None, :]]) if added_center is not None else map_world
+
+    def _dyn() -> np.ndarray:
+        picks: list[np.ndarray] = []
+        while len(picks) < n_dynamic:
+            c = rng.uniform(-15, 15, size=2)
+            if np.hypot(*c) < 6:
+                continue
+            if np.min(np.linalg.norm(static_clear - c, axis=1)) < 4.0:
+                continue
+            picks.append(c)
+        return np.array(picks).reshape(-1, 2)
+
+    current_frames: list[Scene] = []
+    frame0_map_pts = None
+    for f in range(n_frames):
+        world_pts = _points_from_centers(rng, np.vstack([static_now, _dyn()]))
+        if f == 0:
+            frame0_map_pts = world_pts
+        local = t_wq.inverse().transform(world_pts)
+        current_frames.append(
+            Scene(scene_id=f"cur_f{f}", place_id="map_a", timestamp=float(f),
+                  pose=t_wq, observations={MODALITY: Observation(MODALITY, local)},
+                  metadata={"role": "current"}),
+        )
+
+    current_map_frame = Scene(
+        scene_id="cur_map_frame", place_id="map_a", timestamp=0.0, pose=Pose2D(),
+        observations={MODALITY: Observation(MODALITY, frame0_map_pts)}, metadata={"role": "current"},
+    )
+
+    # Vector map: a supported element anchored on a real object, and (if changed)
+    # one over the removed area that the current observation no longer supports.
+    base = kept[0]
+    elements = [MapElement("E1", "lane_boundary", np.array([base + [-1.0, 0.0], base + [1.0, 0.0]]))]
+    if removed_center is not None:
+        elements.append(
+            MapElement("E2", "stop_line", np.array([removed_center - [0.5, 0], removed_center + [0.5, 0]]))
+        )
+        gt_issues.append(("map_element_unobserved", removed_center))
+    vmap = VectorMap(elements=elements, map_id="map_a", version="v1")
+
+    return MapValidationCase(
+        pcd_map=pcd_map,
+        occ_map=occ_map,
+        vmap=vmap,
+        current_frames=current_frames,
+        current_map_frame=current_map_frame,
+        gt_relative_pose=t_wq,
+        gt_issues=gt_issues,
+    )
+
+
 def make_synthetic_route(
     seed: int = 0,
     n_places: int = 12,

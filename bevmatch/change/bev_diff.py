@@ -15,6 +15,8 @@ import numpy as np
 
 from bevmatch.change.comparable import comparable_region, observability
 from bevmatch.core.datamodel import ChangeHypothesis, Pose2D
+from bevmatch.grid_utils import connected_components as _connected_components
+from bevmatch.grid_utils import dilate as _dilate
 from bevmatch.representations.bev import BEVConfig, BEVOccupancy, points_to_bev
 
 
@@ -45,17 +47,6 @@ class ChangeResult:
         return [c for c in self.changes if c.category == "removed"]
 
 
-def _dilate(mask: np.ndarray, passes: int = 1) -> np.ndarray:
-    out = mask.copy()
-    for _ in range(passes):
-        grown = out.copy()
-        for dr in (-1, 0, 1):
-            for dc in (-1, 0, 1):
-                grown |= np.roll(np.roll(out, dr, axis=0), dc, axis=1)
-        out = grown
-    return out
-
-
 def _comparable_disk(config: BEVConfig, margin_m: float) -> np.ndarray:
     size = config.size
     yy, xx = np.mgrid[0:size, 0:size]
@@ -63,36 +54,6 @@ def _comparable_disk(config: BEVConfig, margin_m: float) -> np.ndarray:
     x = (xx - config.center) * res
     y = (yy - config.center) * res
     return np.hypot(x, y) <= (config.range_m - margin_m)
-
-
-def _connected_components(mask: np.ndarray, min_cells: int) -> list[np.ndarray]:
-    """8-connected components as arrays of (row, col), filtered by size."""
-    visited = np.zeros_like(mask, dtype=bool)
-    comps: list[np.ndarray] = []
-    rows, cols = np.nonzero(mask)
-    for r0, c0 in zip(rows, cols):
-        if visited[r0, c0]:
-            continue
-        stack = [(r0, c0)]
-        visited[r0, c0] = True
-        cells = []
-        while stack:
-            r, c = stack.pop()
-            cells.append((r, c))
-            for dr in (-1, 0, 1):
-                for dc in (-1, 0, 1):
-                    nr, nc = r + dr, c + dc
-                    if (
-                        0 <= nr < mask.shape[0]
-                        and 0 <= nc < mask.shape[1]
-                        and mask[nr, nc]
-                        and not visited[nr, nc]
-                    ):
-                        visited[nr, nc] = True
-                        stack.append((nr, nc))
-        if len(cells) >= min_cells:
-            comps.append(np.array(cells))
-    return comps
 
 
 def _components_to_changes(

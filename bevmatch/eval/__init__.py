@@ -6,6 +6,7 @@ from bevmatch.eval.alignment_eval import (
     pose_errors,
 )
 from bevmatch.eval.change_eval import ChangePRF, change_prf, false_changes
+from bevmatch.eval.map_eval import IssuePRF, issue_prf, match_issues, review_burden
 from bevmatch.eval.metrics import (
     mean_reciprocal_rank,
     precision_at_k,
@@ -25,4 +26,8 @@ __all__ = [
     "change_prf",
     "ChangePRF",
     "false_changes",
+    "issue_prf",
+    "IssuePRF",
+    "match_issues",
+    "review_burden",
 ]
