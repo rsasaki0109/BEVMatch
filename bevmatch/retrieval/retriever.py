@@ -51,6 +51,13 @@ class SceneDatabase:
                 return e.scene
         raise KeyError(scene_id)
 
+    def scene_by_place(self, place_id: str) -> Scene:
+        """Return the first scene registered for ``place_id`` (eval helper)."""
+        for e in self._entries:
+            if e.scene.place_id == place_id:
+                return e.scene
+        raise KeyError(place_id)
+
     def _ensure_index(self) -> None:
         if self._dirty or not self._entries:
             vectors = np.array([e.code.vector for e in self._entries], dtype=float)

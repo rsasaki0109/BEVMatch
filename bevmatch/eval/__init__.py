@@ -1,5 +1,10 @@
-"""Evaluation framework (§13): retrieval metrics and pipeline-level recipes."""
+"""Evaluation framework (§13): retrieval/alignment metrics and recipes."""
 
+from bevmatch.eval.alignment_eval import (
+    AlignmentReport,
+    evaluate_alignment,
+    pose_errors,
+)
 from bevmatch.eval.metrics import (
     mean_reciprocal_rank,
     precision_at_k,
@@ -13,4 +18,7 @@ __all__ = [
     "mean_reciprocal_rank",
     "evaluate_retrieval",
     "RetrievalReport",
+    "evaluate_alignment",
+    "AlignmentReport",
+    "pose_errors",
 ]

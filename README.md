@@ -17,8 +17,8 @@ Query Scene
 
 ## Status
 
-v0.2 — retrieval framework（descriptor プラグイン化、index backend 抽象化、Recall@K/MRR 評価）。
-v0.1 MVP のパイプライン（retrieval → alignment → change diff → evidence）も合成データでエンドツーエンドに動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
+v0.3 — alignment framework（SE2/SE3 aligner プラグイン、richer alignment evidence、overlap 推定、failure classification、translation/rotation error 評価、残差可視化）。
+v0.2 retrieval framework（descriptor / index プラグイン、Recall@K/MRR 評価）、v0.1 MVP パイプライン（retrieval → alignment → change diff → evidence）も合成データでエンドツーエンド動作。依存は `numpy` のみ（可視化は任意で `matplotlib`、大規模 index は任意で `faiss-cpu`）。
 
 ## Quickstart
 
@@ -59,6 +59,28 @@ bev-grid        brute-force   0.417  0.583  0.481
 descriptor（`GlobalDescriptor`）と index backend（`IndexBackend`）はプラグインで、
 `SceneDatabase(descriptor=..., index=...)` で差し替えられます（FAISS は `make_index("faiss")`）。
 
+### Alignment benchmark (v0.3)
+
+```bash
+python examples/run_alignment_eval.py
+```
+
+SE2/SE3 aligner を GT 相対姿勢に対して評価し、failure classification と
+SE3 の縮退（平面シーンで z/roll/pitch が観測不能）を表示します。
+`out/alignment_residual.png` に整列オーバーレイ + 残差マップを出力します。
+
+```text
+aligner       succ  wtol  t_err  r_err  ovlp
+se2-bev-xcorr  1.000  1.000  0.083  0.13  0.772
+se3-icp        1.000  1.000  0.085  0.14  0.773
+
+Wrong-place alignment: success=False, class=overlap_insufficient, overlap=0.30
+SE3 degeneracy (planar scene): unobservable=['z','roll','pitch']
+```
+
+aligner（`Aligner`）もプラグインで、`SamePlaceComparisonPipeline(aligner=...)` や
+`evaluate_alignment(...)` で差し替えられます。
+
 ### Library 利用
 
 ```python
@@ -87,9 +109,10 @@ Query LiDAR scene
 | `bevmatch.core` | データモデル・evidence schema・plugin registry・pipeline (§5, §6, §7, §8) |
 | `bevmatch.representations` | BEV occupancy 表現 (§5.4) |
 | `bevmatch.retrieval` | descriptor / index プラグイン + Top-K retriever (§9, §7.2) |
-| `bevmatch.alignment` | SE2 alignment（BEV相互相関 + ICP refine）(§10) |
+| `bevmatch.alignment` | SE2/SE3 aligner プラグイン（BEV相互相関 + ICP）+ failure 分類 (§10, §7.2) |
 | `bevmatch.change` | geometry-level BEV occupancy diff (§11) |
-| `bevmatch.eval` | retrieval メトリクス（Recall@K/MRR）と評価レシピ (§13) |
+| `bevmatch.eval` | retrieval / alignment メトリクスと評価レシピ (§13) |
+| `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
 | `bevmatch.io` | evidence エクスポート (§16.4) |
 
