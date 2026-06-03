@@ -1,0 +1,39 @@
+[
+  {
+    "sequence": "00",
+    "scans": 4541,
+    "time_exclude_s": 30.0,
+    "descriptor": "ScanContextDescriptor (ring-key KNN prefilter + SC column-shift rerank)",
+    "config": {
+      "n_rings": 20,
+      "n_sectors": 60,
+      "max_range_m": 30.0,
+      "voxel_m": 0.5,
+      "rerank": 25
+    },
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 1706,
+        "recall@1": 0.9132,
+        "recall@5": 0.9197,
+        "recall@10": 0.925,
+        "recall@20": 0.9285
+      },
+      "10m": {
+        "n_queries": 1838,
+        "recall@1": 0.8498,
+        "recall@5": 0.8613,
+        "recall@10": 0.8716,
+        "recall@20": 0.8781
+      },
+      "25m": {
+        "n_queries": 2089,
+        "recall@1": 0.763,
+        "recall@5": 0.7793,
+        "recall@10": 0.7927,
+        "recall@20": 0.8066
+      }
+    }
+  }
+]

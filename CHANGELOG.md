@@ -3,6 +3,20 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.2.0 — Real public-data benchmarks
+
+- **KITTI odometry place-recognition benchmarks** with real Recall@K, standard
+  protocol (positive = pose ≤ D & |dt| > 30 s; temporal window excluded):
+  - Camera VPR (`scripts/benchmark_kitti_vpr.py`): ResNet-18 embeddings,
+    seq 00 R@1 = 0.923 @ 5 m.
+  - LiDAR Scan-Context (`scripts/benchmark_kitti_lidar.py`): ring-key prefilter
+    + SC column-shift rerank, seq 00 R@1 = 0.913 @ 5 m.
+  - Cross-modal comparison on the same sequence/protocol (Principle 2).
+- `docs/benchmarks.md`: real-data results + an explicit separation of
+  benchmark numbers vs synthetic sanity-check tables.
+- README: real-data benchmark section up top; synthetic tables labelled as
+  sanity checks.
+
 ## 1.1.0 — Real data + scalable alignment
 
 - Real-data loaders (`bevmatch.datasets`): `load_pcd` / `load_las_tile` /
