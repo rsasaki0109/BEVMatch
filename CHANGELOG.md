@@ -3,6 +3,19 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.8.0 — One-figure results summary
+
+- `scripts/make_results_summary.py` + `docs/assets/bevmatch_results_summary.png`:
+  a single grouped-bar figure (read from the benchmark JSONs, no recompute) of
+  Recall@1 @ 5 m across the KITTI loop sequences for the three descriptors that
+  all run behind BEVMatch's one retrieval interface — hand-crafted LiDAR
+  Scan-Context, the generic ResNet-18 camera baseline, and the learned EigenPlaces
+  camera SOTA — plus a ghost bar for the LiDAR wide-config recovery on seq 08.
+  Visualises the whole research story: learning lifts the forward cases, both
+  camera descriptors hit the reverse-direction viewpoint wall (~0.02), and only
+  the 360° LiDAR holds (0.34) and recovers (0.76) there.
+- README: summary figure at the top of the real-data benchmark section.
+
 ## 1.7.0 — Learned SOTA descriptor comparison (EigenPlaces)
 
 - `scripts/benchmark_kitti_vpr_learned.py`: swaps the generic ResNet-18 (ImageNet)
