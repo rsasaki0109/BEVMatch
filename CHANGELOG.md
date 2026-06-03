@@ -3,6 +3,17 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.1.0 — Real data + scalable alignment
+
+- Real-data loaders (`bevmatch.datasets`): `load_pcd` / `load_las_tile` /
+  `load_kitti_bin`, `voxel_downsample`, `remove_ground`, `scene_from_points`.
+- Scalable nearest-neighbour search (`bevmatch.spatial`): KD-tree / chunked
+  brute force — fixes the ICP OOM on dense real LiDAR.
+- GitHub Actions CI (pytest on push/PR, Python 3.11/3.12).
+- README hero GIFs from **real** data: LiDAR-map localization (109M-point survey)
+  and KITTI loop-closure visual place recognition (ResNet-18 camera embeddings).
+- Optional extras: `perf` (scipy), `data` (laspy, open3d).
+
 ## 1.0.0 — Stable Same-Place Comparison Platform
 
 - Stable **artifact schema** (`bevmatch.schema`, `ARTIFACT_SCHEMA_VERSION=1.0`)

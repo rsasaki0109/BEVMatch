@@ -1,6 +1,13 @@
 # BEVMatch
 
 <p align="center">
+  <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
+  <img src="https://img.shields.io/badge/version-1.1.0-informational" alt="v1.1.0">
+</p>
+
+<p align="center">
   <img src="docs/assets/bevmatch_hero.gif" alt="BEVMatch localizing a real LiDAR observation against a real 109M-point survey map" width="100%">
 </p>
 <p align="center"><sub><b>Real data:</b> a LiDAR observation localized against a real 109M-point survey map — BEVMatch retrieves the place among real tiles and recovers the SE2 pose + covariance (actual pipeline output).</sub></p>
@@ -27,10 +34,10 @@ Query Scene
 
 ## Status
 
-**v1.0 — Stable Same-Place Comparison Platform** 🎉 ロードマップ v0.1→v1.0 完了。
-安定化済みの **artifact schema**（`bevmatch.schema`）、**plugin manifest**（`bevmatch.plugins`, §7.3）、**benchmark protocol**、再現可能 demo suite、ドキュメント一式を備えます。
+**v1.1 — Stable platform + real data** 🎉 ロードマップ v0.1→v1.0 完了後、実データ対応を追加。
+安定化済みの **artifact schema**（`bevmatch.schema`）、**plugin manifest**（`bevmatch.plugins`, §7.3）、**benchmark protocol**、CI、再現可能 demo suite を備えます。上のヒーロー GIF は実 LiDAR 地図 / 実 KITTI 画像での実パイプライン出力です。
 
-retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2 → benchmark → multi-modal の全レイヤが合成データでエンドツーエンド動作（テスト 73 件全パス）。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
+retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2 → benchmark → multi-modal の全レイヤが動作（テスト 85 件全パス）。実 LiDAR（PCD/LAS/KITTI）ローダと、密点群でも OOM しない KD-tree alignment を搭載。コア依存は `numpy` のみ（任意で `scipy` / `matplotlib` / `faiss-cpu` / `rclpy` / `laspy` / `open3d`）。
 
 ## Quickstart
 
@@ -245,6 +252,19 @@ db = SceneDatabase(); db.add_all(data.historical)
 bundle = SamePlaceComparisonPipeline(database=db).run(data.query)
 print(bundle.summary())
 ```
+
+### 実データ (real point clouds)
+
+実 LiDAR（PCD / LAS / KITTI `.bin`）を取り込めます。密な点群は voxel ダウンサンプルしてから（alignment は KD-tree NN で大規模点群でも OOM しません）。
+
+```python
+from bevmatch.datasets import load_pcd, scene_from_points   # load_las_tile / load_kitti_bin も
+pts = load_pcd("scan.pcd")                                   # (N, 3)
+scene = scene_from_points(pts, "scan0", voxel=0.7, drop_ground=True)
+db.add(scene)   # 以降は同じパイプライン
+```
+
+`pip install -e ".[perf,data]"`（scipy / laspy / open3d）。
 
 ## v0.1 MVP Pipeline
 
