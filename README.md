@@ -17,8 +17,8 @@ Query Scene
 
 ## Status
 
-v0.6 — ROS2 integration（lifecycle-managed bag replay、TF tree、diagnostics、RViz/Foxglove markers、rclpy LifecycleNode）。Core は ROS2 非依存のまま、ROS2 統合を first-class で提供（§16.1）。
-v0.5 map validation（validator + severity + review report）、v0.4 change detection（occlusion-aware + persistence）、v0.3 alignment（SE2/SE3 + failure）、v0.2 retrieval（descriptor/index プラグイン）、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（可視化は任意で `matplotlib`、index は任意で `faiss-cpu`、ROS2 ノードは任意で `rclpy`）。
+v0.7 — Autoware / Nav2 adapters（initial pose assistance、localization health、point cloud map freshness、Lanelet2 consistency、Nav2 relocalization、occupancy staleness、changed-area annotation）。
+v0.6 ROS2 integration（lifecycle bag replay、TF、diagnostics、markers、rclpy node）、v0.5 map validation、v0.4 change detection、v0.3 alignment、v0.2 retrieval、v0.1 MVP も合成データでエンドツーエンド動作。コア依存は `numpy` のみ（任意で `matplotlib` / `faiss-cpu` / `rclpy`）。
 
 ## Quickstart
 
@@ -153,6 +153,27 @@ ros2 topic echo /bevmatch/markers
   lifecycle `BagReplayPipeline`（すべて純 Python・テスト可能）。
 - `bevmatch.ros.node`：rclpy `LifecycleNode`（ROS2 がある時のみ import）。
 
+### Autoware / Nav2 adapters (v0.7)
+
+```bash
+python examples/run_autoware_nav2.py
+```
+
+BEVMatch は Autoware/Nav2 の localization を置き換えず、その周辺を支援します（§17.1, §18.1）。
+
+```text
+Autoware initial pose:  place=place_4 pose=(-3.12,-1.21,-29.0deg)  best vs GT 0.17m/0.41deg
+                        cov(x,y,yaw)=0.240,0.240,0.0008  (z/roll/pitch -> unobservable)
+Autoware loc-health:    reported≈truth -> OK ;  drifted +8m -> ERROR
+Autoware map freshness: stale regions = [missing_static_structure]
+Nav2 occupancy stale:   [map_stale_region, new_static_obstacle]  blocked areas=1
+Nav2 relocalization:    AMCL initial pose = (-3.12,-1.21,-29.0deg)
+```
+
+- `AutowareAdapter`：initial pose（NDT Monte-Carlo 前段）、localization health、PCD map freshness、Lanelet2 consistency（§17.2 A–D）。
+- `Nav2Adapter`：relocalization assist、`OccupancyGrid` staleness、changed-area annotation（§18.2 A–C）。
+- initial pose は alignment から **covariance**（z/roll/pitch を観測不能としてマーク）を付与。
+
 ### Library 利用
 
 ```python
@@ -185,6 +206,7 @@ Query LiDAR scene
 | `bevmatch.change` | occlusion-aware diff + comparable region + persistence (§11) |
 | `bevmatch.maps` | map 検証 validator + issue severity + review report (§12) |
 | `bevmatch.ros` | ROS2 統合: TF / diagnostics / markers / lifecycle replay / node (§16) |
+| `bevmatch.integrations` | Autoware / Nav2 アダプタ（initial pose / health / staleness）(§17, §18) |
 | `bevmatch.eval` | retrieval / alignment / change / map メトリクス (§13) |
 | `bevmatch.viz` | 整列オーバーレイ・残差可視化（matplotlib 任意）(§15) |
 | `bevmatch.datasets` | 合成 same-place / route ベンチマーク (§14) |
