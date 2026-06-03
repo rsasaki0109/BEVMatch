@@ -3,6 +3,26 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.9.0 — Late-fusion benchmark (Finding 3: fusion is not a free lunch)
+
+- `scripts/benchmark_kitti_fusion.py`: fuses BEVMatch's LiDAR Scan-Context and
+  EigenPlaces camera rankings two ground-truth-free ways — equal-weight Reciprocal
+  Rank Fusion and a confidence gate (per-query top-1-vs-top-2 margin, Lowe-style).
+  Runs purely on cached descriptors with numpy + BEVMatch's `sc_alignment_distance`
+  (no network, no external model code); rank matrices vectorised, only the
+  per-query Scan-Context rerank stays in Python.
+- **Finding 3 (honest negative + nuance):** naive equal-weight RRF is a *net loss*
+  (mean R@1 @ 5 m = 0.695, below both single modalities) — on reverse seq 08 the
+  blind camera drags LiDAR from 0.339 down to 0.081. A confidence gate is the best
+  on average (0.714) and never catastrophic, **but still does not recover the
+  blind case** (seq 08 → 0.203, short of LiDAR's 0.339; it picks the blind camera
+  ~49% of queries because a within-sequence self-normalised margin cannot encode
+  global blindness). Recovering the blind case needs absolute cross-modal
+  confidence calibration, not naive score combination — which motivates
+  learned/calibrated fusion as the next step.
+- docs/findings.md (Finding 3) + docs/benchmarks.md (Fusion section) + README:
+  fusion table and the honest takeaway.
+
 ## 1.8.1 — Technical note: two findings
 
 - `docs/findings.md`: a short, honest technical note that states what the

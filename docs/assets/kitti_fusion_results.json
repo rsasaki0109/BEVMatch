@@ -1,0 +1,492 @@
+[
+  {
+    "sequence": "00",
+    "frames": 4541,
+    "rrf_c": 60.0,
+    "camera_picked_frac": 0.502,
+    "by_distance": {
+      "5m": {
+        "lidar": {
+          "n_queries": 1706,
+          "recall@1": 0.9132,
+          "recall@5": 0.9197,
+          "recall@10": 0.925,
+          "recall@20": 0.9285
+        },
+        "camera_eigenplaces": {
+          "n_queries": 1706,
+          "recall@1": 0.9566,
+          "recall@5": 0.9642,
+          "recall@10": 0.9678,
+          "recall@20": 0.9742
+        },
+        "fusion_rrf": {
+          "n_queries": 1706,
+          "recall@1": 0.9566,
+          "recall@5": 0.9719,
+          "recall@10": 0.9801,
+          "recall@20": 0.9865
+        },
+        "fusion_gated": {
+          "n_queries": 1706,
+          "recall@1": 0.939,
+          "recall@5": 0.9461,
+          "recall@10": 0.9508,
+          "recall@20": 0.9549
+        }
+      },
+      "10m": {
+        "lidar": {
+          "n_queries": 1838,
+          "recall@1": 0.8498,
+          "recall@5": 0.8613,
+          "recall@10": 0.8716,
+          "recall@20": 0.8781
+        },
+        "camera_eigenplaces": {
+          "n_queries": 1838,
+          "recall@1": 0.9157,
+          "recall@5": 0.9238,
+          "recall@10": 0.9282,
+          "recall@20": 0.9369
+        },
+        "fusion_rrf": {
+          "n_queries": 1838,
+          "recall@1": 0.914,
+          "recall@5": 0.9325,
+          "recall@10": 0.9418,
+          "recall@20": 0.9494
+        },
+        "fusion_gated": {
+          "n_queries": 1838,
+          "recall@1": 0.8874,
+          "recall@5": 0.8961,
+          "recall@10": 0.9037,
+          "recall@20": 0.9102
+        }
+      },
+      "25m": {
+        "lidar": {
+          "n_queries": 2089,
+          "recall@1": 0.763,
+          "recall@5": 0.7793,
+          "recall@10": 0.7927,
+          "recall@20": 0.8066
+        },
+        "camera_eigenplaces": {
+          "n_queries": 2089,
+          "recall@1": 0.8463,
+          "recall@5": 0.8612,
+          "recall@10": 0.8722,
+          "recall@20": 0.8837
+        },
+        "fusion_rrf": {
+          "n_queries": 2089,
+          "recall@1": 0.8329,
+          "recall@5": 0.8645,
+          "recall@10": 0.8822,
+          "recall@20": 0.8971
+        },
+        "fusion_gated": {
+          "n_queries": 2089,
+          "recall@1": 0.8028,
+          "recall@5": 0.8176,
+          "recall@10": 0.8325,
+          "recall@20": 0.8444
+        }
+      }
+    }
+  },
+  {
+    "sequence": "05",
+    "frames": 2761,
+    "rrf_c": 60.0,
+    "camera_picked_frac": 0.499,
+    "by_distance": {
+      "5m": {
+        "lidar": {
+          "n_queries": 963,
+          "recall@1": 0.783,
+          "recall@5": 0.7975,
+          "recall@10": 0.8017,
+          "recall@20": 0.8037
+        },
+        "camera_eigenplaces": {
+          "n_queries": 963,
+          "recall@1": 0.9138,
+          "recall@5": 0.9387,
+          "recall@10": 0.9502,
+          "recall@20": 0.9595
+        },
+        "fusion_rrf": {
+          "n_queries": 963,
+          "recall@1": 0.8193,
+          "recall@5": 0.9034,
+          "recall@10": 0.947,
+          "recall@20": 0.9761
+        },
+        "fusion_gated": {
+          "n_queries": 963,
+          "recall@1": 0.8411,
+          "recall@5": 0.8619,
+          "recall@10": 0.8681,
+          "recall@20": 0.8754
+        }
+      },
+      "10m": {
+        "lidar": {
+          "n_queries": 1139,
+          "recall@1": 0.6839,
+          "recall@5": 0.7234,
+          "recall@10": 0.755,
+          "recall@20": 0.7893
+        },
+        "camera_eigenplaces": {
+          "n_queries": 1139,
+          "recall@1": 0.8314,
+          "recall@5": 0.8402,
+          "recall@10": 0.8464,
+          "recall@20": 0.8534
+        },
+        "fusion_rrf": {
+          "n_queries": 1139,
+          "recall@1": 0.7349,
+          "recall@5": 0.8156,
+          "recall@10": 0.8499,
+          "recall@20": 0.8955
+        },
+        "fusion_gated": {
+          "n_queries": 1139,
+          "recall@1": 0.7559,
+          "recall@5": 0.7805,
+          "recall@10": 0.8042,
+          "recall@20": 0.8314
+        }
+      },
+      "25m": {
+        "lidar": {
+          "n_queries": 1317,
+          "recall@1": 0.6052,
+          "recall@5": 0.6629,
+          "recall@10": 0.7008,
+          "recall@20": 0.7578
+        },
+        "camera_eigenplaces": {
+          "n_queries": 1317,
+          "recall@1": 0.7456,
+          "recall@5": 0.7616,
+          "recall@10": 0.7715,
+          "recall@20": 0.7882
+        },
+        "fusion_rrf": {
+          "n_queries": 1317,
+          "recall@1": 0.6636,
+          "recall@5": 0.7396,
+          "recall@10": 0.7942,
+          "recall@20": 0.8307
+        },
+        "fusion_gated": {
+          "n_queries": 1317,
+          "recall@1": 0.6788,
+          "recall@5": 0.7183,
+          "recall@10": 0.7464,
+          "recall@20": 0.7874
+        }
+      }
+    }
+  },
+  {
+    "sequence": "06",
+    "frames": 1101,
+    "rrf_c": 60.0,
+    "camera_picked_frac": 0.514,
+    "by_distance": {
+      "5m": {
+        "lidar": {
+          "n_queries": 565,
+          "recall@1": 0.8867,
+          "recall@5": 0.8991,
+          "recall@10": 0.8991,
+          "recall@20": 0.9009
+        },
+        "camera_eigenplaces": {
+          "n_queries": 565,
+          "recall@1": 0.977,
+          "recall@5": 0.9858,
+          "recall@10": 0.9876,
+          "recall@20": 0.9929
+        },
+        "fusion_rrf": {
+          "n_queries": 565,
+          "recall@1": 0.9044,
+          "recall@5": 0.9522,
+          "recall@10": 0.9628,
+          "recall@20": 0.9912
+        },
+        "fusion_gated": {
+          "n_queries": 565,
+          "recall@1": 0.9274,
+          "recall@5": 0.9398,
+          "recall@10": 0.9398,
+          "recall@20": 0.9434
+        }
+      },
+      "10m": {
+        "lidar": {
+          "n_queries": 581,
+          "recall@1": 0.8623,
+          "recall@5": 0.883,
+          "recall@10": 0.8847,
+          "recall@20": 0.9088
+        },
+        "camera_eigenplaces": {
+          "n_queries": 581,
+          "recall@1": 0.9639,
+          "recall@5": 0.969,
+          "recall@10": 0.9725,
+          "recall@20": 0.9725
+        },
+        "fusion_rrf": {
+          "n_queries": 581,
+          "recall@1": 0.9036,
+          "recall@5": 0.9466,
+          "recall@10": 0.9621,
+          "recall@20": 0.9793
+        },
+        "fusion_gated": {
+          "n_queries": 581,
+          "recall@1": 0.9036,
+          "recall@5": 0.9208,
+          "recall@10": 0.926,
+          "recall@20": 0.938
+        }
+      },
+      "25m": {
+        "lidar": {
+          "n_queries": 863,
+          "recall@1": 0.5979,
+          "recall@5": 0.6338,
+          "recall@10": 0.6732,
+          "recall@20": 0.7532
+        },
+        "camera_eigenplaces": {
+          "n_queries": 863,
+          "recall@1": 0.7045,
+          "recall@5": 0.7277,
+          "recall@10": 0.7555,
+          "recall@20": 0.8007
+        },
+        "fusion_rrf": {
+          "n_queries": 863,
+          "recall@1": 0.6582,
+          "recall@5": 0.7184,
+          "recall@10": 0.7416,
+          "recall@20": 0.781
+        },
+        "fusion_gated": {
+          "n_queries": 863,
+          "recall@1": 0.6419,
+          "recall@5": 0.6779,
+          "recall@10": 0.7231,
+          "recall@20": 0.7879
+        }
+      }
+    }
+  },
+  {
+    "sequence": "07",
+    "frames": 1101,
+    "rrf_c": 60.0,
+    "camera_picked_frac": 0.496,
+    "by_distance": {
+      "5m": {
+        "lidar": {
+          "n_queries": 94,
+          "recall@1": 0.5957,
+          "recall@5": 0.6277,
+          "recall@10": 0.6383,
+          "recall@20": 0.6383
+        },
+        "camera_eigenplaces": {
+          "n_queries": 94,
+          "recall@1": 0.6809,
+          "recall@5": 0.7021,
+          "recall@10": 0.7128,
+          "recall@20": 0.7234
+        },
+        "fusion_rrf": {
+          "n_queries": 94,
+          "recall@1": 0.7128,
+          "recall@5": 0.7766,
+          "recall@10": 0.7872,
+          "recall@20": 0.7872
+        },
+        "fusion_gated": {
+          "n_queries": 94,
+          "recall@1": 0.6596,
+          "recall@5": 0.6809,
+          "recall@10": 0.7021,
+          "recall@20": 0.7021
+        }
+      },
+      "10m": {
+        "lidar": {
+          "n_queries": 126,
+          "recall@1": 0.4524,
+          "recall@5": 0.5159,
+          "recall@10": 0.5238,
+          "recall@20": 0.5317
+        },
+        "camera_eigenplaces": {
+          "n_queries": 126,
+          "recall@1": 0.8254,
+          "recall@5": 0.8333,
+          "recall@10": 0.8413,
+          "recall@20": 0.8571
+        },
+        "fusion_rrf": {
+          "n_queries": 126,
+          "recall@1": 0.6429,
+          "recall@5": 0.7778,
+          "recall@10": 0.8968,
+          "recall@20": 0.9365
+        },
+        "fusion_gated": {
+          "n_queries": 126,
+          "recall@1": 0.6587,
+          "recall@5": 0.7143,
+          "recall@10": 0.7302,
+          "recall@20": 0.746
+        }
+      },
+      "25m": {
+        "lidar": {
+          "n_queries": 185,
+          "recall@1": 0.3189,
+          "recall@5": 0.3676,
+          "recall@10": 0.3838,
+          "recall@20": 0.4162
+        },
+        "camera_eigenplaces": {
+          "n_queries": 185,
+          "recall@1": 0.6486,
+          "recall@5": 0.6703,
+          "recall@10": 0.6757,
+          "recall@20": 0.6973
+        },
+        "fusion_rrf": {
+          "n_queries": 185,
+          "recall@1": 0.4378,
+          "recall@5": 0.5351,
+          "recall@10": 0.6216,
+          "recall@20": 0.6919
+        },
+        "fusion_gated": {
+          "n_queries": 185,
+          "recall@1": 0.4919,
+          "recall@5": 0.5351,
+          "recall@10": 0.5514,
+          "recall@20": 0.5784
+        }
+      }
+    }
+  },
+  {
+    "sequence": "08",
+    "frames": 4071,
+    "rrf_c": 60.0,
+    "camera_picked_frac": 0.486,
+    "by_distance": {
+      "5m": {
+        "lidar": {
+          "n_queries": 616,
+          "recall@1": 0.3393,
+          "recall@5": 0.3847,
+          "recall@10": 0.4123,
+          "recall@20": 0.4334
+        },
+        "camera_eigenplaces": {
+          "n_queries": 616,
+          "recall@1": 0.0146,
+          "recall@5": 0.0438,
+          "recall@10": 0.0698,
+          "recall@20": 0.0925
+        },
+        "fusion_rrf": {
+          "n_queries": 616,
+          "recall@1": 0.0812,
+          "recall@5": 0.2419,
+          "recall@10": 0.349,
+          "recall@20": 0.4692
+        },
+        "fusion_gated": {
+          "n_queries": 616,
+          "recall@1": 0.2029,
+          "recall@5": 0.2451,
+          "recall@10": 0.2662,
+          "recall@20": 0.2825
+        }
+      },
+      "10m": {
+        "lidar": {
+          "n_queries": 805,
+          "recall@1": 0.2994,
+          "recall@5": 0.359,
+          "recall@10": 0.4087,
+          "recall@20": 0.4484
+        },
+        "camera_eigenplaces": {
+          "n_queries": 805,
+          "recall@1": 0.0273,
+          "recall@5": 0.082,
+          "recall@10": 0.1329,
+          "recall@20": 0.1689
+        },
+        "fusion_rrf": {
+          "n_queries": 805,
+          "recall@1": 0.1217,
+          "recall@5": 0.246,
+          "recall@10": 0.3317,
+          "recall@20": 0.4683
+        },
+        "fusion_gated": {
+          "n_queries": 805,
+          "recall@1": 0.1938,
+          "recall@5": 0.246,
+          "recall@10": 0.2882,
+          "recall@20": 0.3155
+        }
+      },
+      "25m": {
+        "lidar": {
+          "n_queries": 1080,
+          "recall@1": 0.3204,
+          "recall@5": 0.4537,
+          "recall@10": 0.5102,
+          "recall@20": 0.5491
+        },
+        "camera_eigenplaces": {
+          "n_queries": 1080,
+          "recall@1": 0.2083,
+          "recall@5": 0.2889,
+          "recall@10": 0.3407,
+          "recall@20": 0.4009
+        },
+        "fusion_rrf": {
+          "n_queries": 1080,
+          "recall@1": 0.2611,
+          "recall@5": 0.4444,
+          "recall@10": 0.5713,
+          "recall@20": 0.6657
+        },
+        "fusion_gated": {
+          "n_queries": 1080,
+          "recall@1": 0.287,
+          "recall@5": 0.4,
+          "recall@10": 0.4537,
+          "recall@20": 0.4926
+        }
+      }
+    }
+  }
+]
