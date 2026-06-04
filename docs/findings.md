@@ -157,12 +157,18 @@ complementary-but-individually-limited sensors into a retriever that beats both.
   its five loop sequences, but cross-dataset generalisation is untested here.
 - **seq 07 is small.** 94 revisit queries; treat its absolute number as noisy
   (the *direction* of the EigenPlaces improvement is still clear).
-- **Geometric verification uses a Scan-Context proxy, not full ICP.** Finding 3's
-  winning *geo-verified* fusion checks a candidate with the Scan-Context alignment
-  distance (cheap, one extra call/query) rather than a full SE(3) ICP residual
-  with an inlier count. A stronger geometric verifier (BEVMatch's full alignment
-  stage) should only sharpen the accept/reject decision; the proxy already
-  suffices to win on all five sequences.
+- **A "stronger" geometric verifier is not automatically better.** We replaced the
+  Scan-Context proxy with BEVMatch's full SE2 aligner (BEV cross-correlation + ICP,
+  `success` = overlap ≥ 0.45) as the verifier
+  (`scripts/experiment_icp_verification.py`). It *over-accepts*: on the blind
+  seq 08 it accepts the camera on 89 % of queries (vs the proxy's 14 %) and lands
+  at R@1 = 0.068 (vs 0.343) — a BEV cross-correlation maximises overlap, and
+  generic urban structure clears 0.45 even between different places. The proxy
+  wins because it is *comparative* (is the camera's place as consistent as LiDAR's
+  own best for this query?), not because it is geometric. On camera-strong seq 06
+  the full verifier accepts 100 % and matches the camera (0.977) — good at
+  confirming, poor at rejecting. The takeaway: a *relative* verification criterion,
+  not a more sophisticated absolute one.
 - **The acceptance factor ALPHA is not cherry-picked.** Sweeping ALPHA over a 2×
   range, the mean R@1 @ 5 m barely moves and stays above every single-modality
   and score-fusion number throughout:

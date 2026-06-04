@@ -133,6 +133,22 @@ reverse-loop proposal fails the check and is rejected (camera accepted on 16 % o
 seq 08 queries vs 53 % on camera-strong seq 06), while correct forward proposals
 are kept (seq 00 0.963, seq 05 0.922, above LiDAR).
 
+**The verification must be *relative*, not absolute.** We also tried BEVMatch's
+*full* SE2 aligner as the verifier — a 360° BEV cross-correlation + ICP with the
+framework's own `success` verdict (overlap ≥ 0.45) — expecting it to sharpen the
+proxy (`scripts/experiment_icp_verification.py`). It does not. On the decisive
+reverse seq 08 it **accepts the blind camera on 89 % of queries** and lands at
+R@1 = 0.068 (vs the proxy's 0.343), because a BEV cross-correlation *maximises*
+overlap and generic urban structure (roads, façades) exceeds 0.45 even between
+different places — an absolute geometric-success threshold is fooled by
+self-similarity, just as absolute score magnitude was (§4). The proxy works not
+because it is geometric but because it is **comparative**: it asks whether the
+camera's place is as consistent as LiDAR's *own best for that query*. The lesson
+is not "run more ICP" but "verify *relative* to what a true match looks like
+here". (On camera-strong seq 06 the full verifier accepts 100 % and matches the
+camera's 0.977 — it is good at confirming correct matches, only poor at rejecting
+wrong ones.)
+
 ## 5. Discussion
 
 The three findings compose into one statement: **better representations help where
@@ -152,8 +168,10 @@ that beats both.
 - **One dataset.** KITTI urban driving only; cross-dataset generalisation untested.
 - **seq 07 is small** (94 revisit queries) — its absolute number is noisy.
 - **Geometric verification uses a Scan-Context proxy**, not a full SE(3) ICP
-  residual with inlier counts; a stronger verifier (BEVMatch's full alignment
-  stage) should only sharpen it. The acceptance factor α is not cherry-picked:
+  residual with inlier counts. We tested the full SE2 aligner as the verifier
+  (§4) and found it *over-accepts* on self-similar urban geometry; the proxy's
+  *comparative* criterion is what matters, not the verifier's sophistication. The
+  acceptance factor α is not cherry-picked:
   sweeping it over a 2× range (α ∈ [1.0, 2.0]) moves the mean R@1 @ 5 m only
   within 0.762–0.784 and beats every single-modality and score-fusion number
   throughout; the default α = 1.3 (0.779) sits on the plateau.

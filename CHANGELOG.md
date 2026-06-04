@@ -3,6 +3,27 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.12.0 — Full SE2-ICP verifier probe: relative beats absolute (corrects a claim)
+
+- `scripts/experiment_icp_verification.py`: replaces the Scan-Context proxy in the
+  geometric-verification fusion with BEVMatch's **real** SE2 aligner (BEV
+  cross-correlation + ICP, `AlignmentHypothesis.success` = overlap ≥ 0.45) and
+  compares the two verifiers on the decisive sequences (seq 08 blind, seq 06
+  camera-strong).
+- **Finding (and an honest correction).** v1.10/1.11 speculated a full aligner
+  "should only sharpen" the proxy. Measured, it does the opposite: the absolute
+  overlap-success criterion **over-accepts** — on blind seq 08 it accepts the
+  camera on 89 % of queries (vs the proxy's 14 %) and collapses to R@1 = 0.068
+  (vs 0.343), because a BEV cross-correlation maximises overlap and generic urban
+  structure clears 0.45 even between different places. On camera-strong seq 06 it
+  accepts 100 % and matches the camera (0.977). The proxy wins not by being
+  geometric but by being **comparative** (camera's place vs LiDAR's own best for
+  that query) — the same relative-vs-absolute lesson as the score diagnostic.
+- docs/report.md + docs/findings.md: the probe result added and the earlier
+  "should only sharpen" speculation corrected. Uses a coarse verifier config
+  (voxel 1.0 m, yaw step 6°) for runtime; the over-acceptance is mechanistic, not
+  a config artifact (confirmed by seq 06's 100 % accept of correct matches).
+
 ## 1.11.1 — Geo-verification robustness: ALPHA sweep
 
 - `scripts/benchmark_kitti_fusion.py`: sweeps the geometric-verification
