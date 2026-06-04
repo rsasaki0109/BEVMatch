@@ -3,6 +3,15 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.6.0 — Cross-modal failure-mode GIF
+
+- `scripts/make_crossmodal_gif.py` + `docs/assets/bevmatch_crossmodal.gif`:
+  real KITTI seq 08 reverse-direction revisits where the forward-facing camera
+  retrieves the wrong place (often hundreds of metres away) while the 360°
+  LiDAR Scan-Context retrieves the genuine revisit (metres away). Frames are
+  selected from real retrievals (camera top-1 > 25 m GT, LiDAR top-1 < 5 m GT).
+- README: cross-modal GIF added to the hero section.
+
 ## 1.5.0 — Reverse-loop recovered by descriptor tuning
 
 - `scripts/experiment_scancontext_config.py`: A/B of the Scan-Context descriptor

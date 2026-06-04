@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.5.0-informational" alt="v1.5.0">
+  <img src="https://img.shields.io/badge/version-1.6.0-informational" alt="v1.6.0">
 </p>
 
 <p align="center">
@@ -16,6 +16,11 @@
   <img src="docs/assets/bevmatch_camera.gif" alt="BEVMatch visual place recognition on real KITTI images — matching the revisit to the first visit (loop closure)" width="80%">
 </p>
 <p align="center"><sub><b>Same framework, camera input</b> (Principle 2): real KITTI seq 00 loop closure — BEVMatch's <code>CameraEmbeddingDescriptor</code> (ResNet-18) matches each current frame (revisit) to its first-visit frame. Data: KITTI odometry (Geiger et al.), research demo.</sub></p>
+
+<p align="center">
+  <img src="docs/assets/bevmatch_crossmodal.gif" alt="On reverse-direction revisits the camera retrieves the wrong place while LiDAR retrieves the right one" width="92%">
+</p>
+<p align="center"><sub><b>Why one sensor is not enough</b> (the real point of Principle 2): real KITTI seq 08 <b>reverse-direction</b> revisits. The forward-facing <b>camera</b> retrieves the wrong place — often hundreds of metres away (red, ✗) — because it sees the opposite view. The 360° rotation-invariant <b>LiDAR</b> Scan-Context retrieves the genuine revisit, metres away (green, ✓). Same query, same database, opposite outcomes — measured, not staged (<a href="docs/benchmarks.md">benchmarks</a>).</sub></p>
 
 > BEVMatch is not another place recognition method.
 > It is an OSS pipeline for finding the same place, aligning it, comparing it, and turning differences into map validation evidence.
