@@ -28,5 +28,125 @@
         "recall@20": 0.8688
       }
     }
+  },
+  {
+    "sequence": "05",
+    "frames": 2761,
+    "time_exclude_s": 30.0,
+    "descriptor": "CameraEmbeddingDescriptor (ResNet-18, ImageNet)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 963,
+        "recall@1": 0.8484,
+        "recall@5": 0.8847,
+        "recall@10": 0.8962,
+        "recall@20": 0.9065
+      },
+      "10m": {
+        "n_queries": 1139,
+        "recall@1": 0.7515,
+        "recall@5": 0.7796,
+        "recall@10": 0.7893,
+        "recall@20": 0.8042
+      },
+      "25m": {
+        "n_queries": 1317,
+        "recall@1": 0.6803,
+        "recall@5": 0.7153,
+        "recall@10": 0.7297,
+        "recall@20": 0.7563
+      }
+    }
+  },
+  {
+    "sequence": "06",
+    "frames": 1101,
+    "time_exclude_s": 30.0,
+    "descriptor": "CameraEmbeddingDescriptor (ResNet-18, ImageNet)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 565,
+        "recall@1": 0.977,
+        "recall@5": 0.9841,
+        "recall@10": 0.9876,
+        "recall@20": 0.9894
+      },
+      "10m": {
+        "n_queries": 581,
+        "recall@1": 0.9587,
+        "recall@5": 0.9639,
+        "recall@10": 0.9673,
+        "recall@20": 0.9725
+      },
+      "25m": {
+        "n_queries": 863,
+        "recall@1": 0.6825,
+        "recall@5": 0.7115,
+        "recall@10": 0.7416,
+        "recall@20": 0.7798
+      }
+    }
+  },
+  {
+    "sequence": "07",
+    "frames": 1101,
+    "time_exclude_s": 30.0,
+    "descriptor": "CameraEmbeddingDescriptor (ResNet-18, ImageNet)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 94,
+        "recall@1": 0.5,
+        "recall@5": 0.5957,
+        "recall@10": 0.6489,
+        "recall@20": 0.6915
+      },
+      "10m": {
+        "n_queries": 126,
+        "recall@1": 0.4683,
+        "recall@5": 0.5397,
+        "recall@10": 0.5873,
+        "recall@20": 0.6508
+      },
+      "25m": {
+        "n_queries": 185,
+        "recall@1": 0.4216,
+        "recall@5": 0.5946,
+        "recall@10": 0.6703,
+        "recall@20": 0.7622
+      }
+    }
+  },
+  {
+    "sequence": "08",
+    "frames": 4071,
+    "time_exclude_s": 30.0,
+    "descriptor": "CameraEmbeddingDescriptor (ResNet-18, ImageNet)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 616,
+        "recall@1": 0.0146,
+        "recall@5": 0.0422,
+        "recall@10": 0.0698,
+        "recall@20": 0.0974
+      },
+      "10m": {
+        "n_queries": 805,
+        "recall@1": 0.0534,
+        "recall@5": 0.1329,
+        "recall@10": 0.1776,
+        "recall@20": 0.2286
+      },
+      "25m": {
+        "n_queries": 1080,
+        "recall@1": 0.1056,
+        "recall@5": 0.2389,
+        "recall@10": 0.3102,
+        "recall@20": 0.413
+      }
+    }
   }
 ]

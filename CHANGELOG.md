@@ -3,6 +3,18 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.4.0 — Cross-modal multi-sequence benchmark
+
+- Camera VPR extended across the KITTI loop sequences 00/05/06/07/08
+  (`scripts/benchmark_kitti_vpr.py [seqs...]`), matching the LiDAR coverage.
+- **Cross-modal failure-mode finding** (Principle 2): on reverse-direction
+  revisits (seq 08), the forward-facing camera collapses to R@1 = 0.015 while
+  the 360° rotation-invariant LiDAR descriptor holds R@1 = 0.339 — the two
+  modalities fail differently, the argument for a modality-agnostic framework.
+- `scripts/_extract_gray_blocks.py`: per-sequence range download + extraction
+  of KITTI gray images from the public archive.
+- docs/benchmarks.md + README: combined per-sequence cross-modal tables.
+
 ## 1.3.0 — Multi-sequence LiDAR benchmark
 
 - LiDAR Scan-Context Recall@K extended across the **KITTI loop sequences**

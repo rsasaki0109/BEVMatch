@@ -18,7 +18,7 @@ from bevmatch.core.evidence import ComparisonEvidenceBundle
 from bevmatch.core.pipeline import SamePlaceComparisonPipeline
 from bevmatch.retrieval.retriever import SceneDatabase
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 __all__ = [
     "Pose2D",
