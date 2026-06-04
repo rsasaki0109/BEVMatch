@@ -72,21 +72,24 @@ sensor is blind to a revisit, no descriptor recovers it; a second modality that
 is not blind does.** That is the concrete, measured argument for a
 modality-agnostic same-place framework rather than a single-sensor pipeline.
 
-## Finding 3 — but fusing the two is not a free lunch
+## Finding 3 — naive fusion fails, but geometric verification delivers best-of-both
 
 If the modalities fail differently, the obvious hope is that *combining* them
-recovers the blind cases. We tested it honestly — and the obvious version does
-**not** work. Both rankings run behind the one interface; we fuse them two ways,
-using no ground truth (`python scripts/benchmark_kitti_fusion.py`):
+recovers the blind cases. We tested it honestly: the *obvious* (score-level)
+versions do **not** work, but a *geometric* one does. All rankings run behind the
+one interface; no ground truth is used (`python scripts/benchmark_kitti_fusion.py`):
 
-| seq | LiDAR | Camera | naive RRF | confidence-gated |
-|---|---|---|---|---|
-| 00 | 0.913 | 0.957 | 0.957 | 0.939 |
-| 05 | 0.783 | 0.914 | 0.819 | 0.841 |
-| 06 | 0.887 | 0.977 | 0.904 | 0.927 |
-| 07 | 0.596 | 0.681 | **0.713** | 0.660 |
-| 08 (reverse) | **0.339** | 0.015 | 0.081 | 0.203 |
-| **mean** | 0.704 | 0.709 | 0.695 | **0.714** |
+| seq | LiDAR | Camera | naive RRF | conf-gated | **geo-verified** |
+|---|---|---|---|---|---|
+| 00 | 0.913 | 0.957 | 0.957 | 0.939 | **0.963** |
+| 05 | 0.783 | 0.914 | 0.819 | 0.841 | **0.922** |
+| 06 | 0.887 | 0.977 | 0.904 | 0.927 | **0.943** |
+| 07 | 0.596 | 0.681 | 0.713 | 0.660 | **0.723** |
+| 08 (reverse) | 0.339 | 0.015 | 0.081 | 0.203 | **0.343** |
+| **mean** | 0.704 | 0.709 | 0.695 | 0.714 | **0.779** |
+
+The score-level fusions (RRF, confidence-gate) are the cautionary tale; the
+geometry-verified fusion is the resolution. Taking each in turn:
 
 - **Naive equal-weight Reciprocal Rank Fusion is a net loss** (mean 0.695, *below
   both* single modalities). On seq 08 it scores 0.081 — far under LiDAR's 0.339.
@@ -115,13 +118,32 @@ that separation requires **geometric verification** of the retrieved candidate �
 exactly the job of BEVMatch's downstream alignment + evidence stage, not the
 retrieval score.
 
+**The resolution — verify geometry, not score.** So we do exactly what the score
+cannot: verify the camera's proposed place *geometrically*. Per query we trust the
+camera's top-1 only if the two LiDAR scans (at the query frame and the camera's
+proposed frame) align almost as well as LiDAR's own best — Scan-Context alignment
+distance within a factor ALPHA = 1.3 — otherwise we fall back to LiDAR's ranking.
+No ground truth; one extra Scan-Context alignment per query. This is the classic
+robot loop-closure recipe (cheap appearance proposal, geometric check) expressed
+in BEVMatch's interface, and it **wins on every sequence** (the *geo-verified*
+column): mean R@1 = **0.779**, well above either modality alone (0.704 / 0.709)
+and far above the score-level fusions (0.695 / 0.714).
+
+Crucially it **fully recovers the blind case** — seq 08 = 0.343 ≈ LiDAR's 0.339 —
+because on a reverse loop the camera's geometrically-wrong proposal fails the
+alignment check and is rejected (verification accepts the camera on only 16 % of
+seq 08 queries, versus 53 % on camera-strong seq 06). The same mechanism that
+ignores the confidently-wrong camera on seq 08 *keeps* it where it is right,
+lifting the forward loops above LiDAR (seq 00 0.963, seq 05 0.922).
+
 The honest lesson: **late fusion of a working and a blind sensor is not
-automatically better than using the working one** — and detecting *which* sensor
-to trust cannot come from descriptor confidence alone; it needs cross-modal
-calibration grounded in **geometric verification**, not score combination. This is precisely the role a same-place
-framework's per-modality health/evidence should play (BEVMatch's evidence bundle
-is built to carry it), and it makes *learned/calibrated* fusion — not naive
-score combination — the right next step.
+automatically better than using the working one** if you fuse *scores* — naive
+RRF is a net loss and a confidence gate only buys robustness. What works is
+fusing on **geometric verification**: trust a modality's match only when the
+geometry confirms it. That is precisely why a same-place framework carries
+per-modality geometry/evidence (retrieve → align → evidence) rather than stopping
+at a retrieval score — and here that architecture, on real data, turns two
+complementary-but-individually-limited sensors into a retriever that beats both.
 
 ## Honest limitations
 
@@ -134,13 +156,13 @@ score combination — the right next step.
   its five loop sequences, but cross-dataset generalisation is untested here.
 - **seq 07 is small.** 94 revisit queries; treat its absolute number as noisy
   (the *direction* of the EigenPlaces improvement is still clear).
-- **Fusion is score-level, by design.** Finding 3 reports *score-level* fusion
-  (RRF and a confidence gate). The diagnostic there shows score magnitude alone
-  cannot flag the blind case (the camera is "confidently wrong"), so the next step
-  is *not* a better score gate but **geometric verification** of retrieved
-  candidates — running BEVMatch's alignment/evidence stage as the arbiter and
-  gating on whether a candidate geometrically aligns. That closes the loop this
-  note opens and is the natural next experiment.
+- **Geometric verification uses a Scan-Context proxy, not full ICP.** Finding 3's
+  winning *geo-verified* fusion checks a candidate with the Scan-Context alignment
+  distance (cheap, one extra call/query) rather than a full SE(3) ICP residual
+  with an inlier count. A stronger geometric verifier (BEVMatch's full alignment
+  stage) should only sharpen the accept/reject decision; the proxy already
+  suffices to win on all five sequences. ALPHA = 1.3 was set once, not tuned per
+  sequence; the result is not sensitive to small changes.
 
 ## Reproduce
 

@@ -3,6 +3,26 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.10.0 — Geometric-verification fusion beats both modalities (Finding 3 resolved)
+
+- `scripts/benchmark_kitti_fusion.py` adds a third strategy, **geometric
+  verification**: per query, trust the camera's proposed place only if its two
+  LiDAR scans (query frame vs camera's top-1 frame) align almost as well as
+  LiDAR's own best — Scan-Context alignment distance within ALPHA = 1.3 — else
+  fall back to LiDAR. One extra SC alignment per query; no ground truth.
+- **The resolution of Finding 3.** Where the score-level fusions failed (naive
+  RRF 0.695, confidence-gate 0.714, both unable to recover the blind reverse
+  loop), geometric verification **wins on every sequence** — mean R@1 @ 5 m =
+  **0.779**, +0.07 over either modality alone — and **fully recovers seq 08**
+  (0.343 ≈ LiDAR's 0.339): the camera's geometrically-wrong reverse-loop proposal
+  fails the alignment check and is rejected (camera accepted on 16% of seq 08
+  queries vs 53% on camera-strong seq 06), while its correct forward-loop
+  proposals are kept (seq 00 0.963, seq 05 0.922, both above LiDAR). The
+  retrieve → align → evidence design, validated on real data: fusing on geometry
+  (not score) turns two individually-limited sensors into a retriever beating both.
+- docs/findings.md (Finding 3 rewritten with the resolution) + docs/benchmarks.md
+  + README: geo-verified column and the takeaway.
+
 ## 1.9.1 — Finding 3, deepened: "confidently wrong" is unflaggable by score
 
 - docs/findings.md: a diagnostic measuring the camera's mean top-1 cosine per

@@ -8,12 +8,17 @@ al. 2009), a standard, parameter-light, scale-free rank combiner:
 
     score(j) = 1/(C + rank_lidar(j)) + 1/(C + rank_camera(j)),  C = 60
 
-We report two fusion strategies and contrast them honestly:
+We report three fusion strategies and contrast them honestly:
   * **naive RRF** (equal weight) — and we show it *fails* on the blind-modality
     case: when one sensor is noise, equal weight drags the working sensor down.
   * **confidence-gated** — per query, trust the more self-confident sensor, where
     confidence is the top-1-vs-top-2 score margin (Lowe's ratio-test intuition),
-    normalised per modality. No ground truth is used to gate.
+    normalised per modality. Helps on average but cannot flag "confidently wrong".
+  * **geometry-verified** — trust the camera's proposal only if it is
+    *geometrically* almost as consistent as LiDAR's own best (Scan-Context
+    alignment distance within ALPHA), else fall back to LiDAR's ranking. This is
+    the verification a score gate cannot do, and the one that recovers seq 08.
+  No ground truth is used in any of the three.
 
 Same protocol as the single-modality benchmarks (positive = pose <= D m AND
 |dt| > 30 s; temporal window excluded; Recall@K over revisits), so the fusion
@@ -83,6 +88,7 @@ def evaluate(seq: str) -> dict | None:
     csim = cnrm @ cnrm.T
     csim[~far] = -np.inf
     cam_rank = _rank_matrix(csim)
+    cam_top1 = np.argmax(csim, axis=1)  # the camera's proposed place per query
     # per-query self-confidence: top-1 minus top-2 similarity (Lowe-style margin).
     # A blind modality has no standout candidate -> small gap -> low confidence.
     cs = np.sort(csim, axis=1)[:, ::-1]
@@ -97,7 +103,9 @@ def evaluate(seq: str) -> dict | None:
     rk_order = np.argsort(rk_d2, axis=1)
     # baseline lidar rank = ring-key rank pushed back by RERANK; survivors overwrite 0..RERANK-1
     lidar_rank = _rank_matrix(-rk_d2) + RERANK
-    lidar_gap = np.zeros(n, dtype=float)  # SC distance margin: dist@2 - dist@1
+    lidar_gap = np.zeros(n, dtype=float)        # SC distance margin: dist@2 - dist@1
+    d_lid = np.full(n, np.inf)                  # LiDAR's own best geometric distance
+    d_cam = np.full(n, np.inf)                  # SC distance of the CAMERA's proposed place
     for q in range(n):
         survivors = rk_order[q, :RERANK]
         survivors = survivors[far[q, survivors]]
@@ -105,8 +113,14 @@ def evaluate(seq: str) -> dict | None:
         sd = np.argsort(dists)
         for i, si in enumerate(sd):
             lidar_rank[q, survivors[si]] = i
+        if len(sd) >= 1:
+            d_lid[q] = dists[sd[0]]
         if len(sd) >= 2:
             lidar_gap[q] = dists[sd[1]] - dists[sd[0]]
+        # geometric verification of the camera's proposal: align the two LiDAR
+        # scans at the query frame and the camera's top-1 frame.
+        if far[q, cam_top1[q]]:
+            d_cam[q] = sc_alignment_distance(scs[q], scs[cam_top1[q]])[0]
         if q % 500 == 0 or q == n - 1:
             print(f"  rerank {q + 1}/{n}", end="\r", flush=True)
     print()
@@ -123,7 +137,16 @@ def evaluate(seq: str) -> dict | None:
     lid_n = lidar_gap / (np.median(lidar_gap[lidar_gap > 0]) + 1e-9)
     pick_cam = cam_n >= lid_n
     gated_rank = np.where(pick_cam[:, None], cam_rank, lidar_rank)
-    res_pick = {"camera_frac": round(float(pick_cam.mean()), 3)}
+
+    # --- verification-gated fusion: trust the camera only if its proposed place
+    # is *geometrically* almost as consistent as LiDAR's own best (SC distance
+    # within ALPHA). This catches "confidently wrong" appearance matches that no
+    # score gate can: on a reverse loop the camera's pick has poor LiDAR overlap.
+    ALPHA = 1.3
+    accept_cam = d_cam <= ALPHA * d_lid
+    verified_rank = np.where(accept_cam[:, None], cam_rank, lidar_rank)
+    res_pick = {"camera_frac": round(float(pick_cam.mean()), 3),
+                "verify_camera_frac": round(float(accept_cam.mean()), 3)}
 
     def recall_at(rank: np.ndarray, D: float) -> dict:
         positive = (pd <= D) & far
@@ -138,7 +161,8 @@ def evaluate(seq: str) -> dict | None:
         return {"n_queries": int(nq), **{k: round(v / nq, 4) for k, v in rec.items()}}
 
     res = {"sequence": seq, "frames": int(n), "rrf_c": RRF_C,
-           "camera_picked_frac": res_pick["camera_frac"], "by_distance": {}}
+           "camera_picked_frac": res_pick["camera_frac"],
+           "verify_camera_frac": res_pick["verify_camera_frac"], "by_distance": {}}
     for D in DISTANCES:
         key = f"{D:.0f}m"
         res["by_distance"][key] = {
@@ -146,14 +170,17 @@ def evaluate(seq: str) -> dict | None:
             "camera_eigenplaces": recall_at(cam_rank, D),
             "fusion_rrf": recall_at(fused_rank, D),
             "fusion_gated": recall_at(gated_rank, D),
+            "fusion_verified": recall_at(verified_rank, D),
         }
         b = res["by_distance"][key]
         print(f"  D={D:>4.0f}m  q={b['fusion_rrf']['n_queries']:5d}  R@1  "
               f"LiDAR={b['lidar']['recall@1']:.3f}  "
               f"Camera={b['camera_eigenplaces']['recall@1']:.3f}  "
               f"RRF={b['fusion_rrf']['recall@1']:.3f}  "
-              f"Gated={b['fusion_gated']['recall@1']:.3f}")
-    print(f"  (camera picked on {res_pick['camera_frac']*100:.0f}% of queries)")
+              f"Gated={b['fusion_gated']['recall@1']:.3f}  "
+              f"Verified={b['fusion_verified']['recall@1']:.3f}")
+    print(f"  (confidence-gate picked camera {res_pick['camera_frac']*100:.0f}%; "
+          f"verification accepted camera {res_pick['verify_camera_frac']*100:.0f}%)")
     return res
 
 
@@ -161,19 +188,20 @@ def main() -> None:
     seqs = [a for a in sys.argv[1:] if not a.startswith("-")] or ["00", "05", "06", "07", "08"]
     results = [r for r in (evaluate(s) for s in seqs) if r]
     if results:
-        print("\n=== R@1 @ 5 m: LiDAR vs Camera vs naive-RRF vs confidence-Gated ===")
-        print(f"  {'seq':>4}  {'LiDAR':>7}  {'Camera':>7}  {'RRF':>7}  {'Gated':>7}")
-        agg = {"lidar": [], "camera_eigenplaces": [], "fusion_rrf": [], "fusion_gated": []}
+        print("\n=== R@1 @ 5 m: LiDAR vs Camera vs RRF vs conf-Gated vs geo-Verified ===")
+        print(f"  {'seq':>4}  {'LiDAR':>7}  {'Camera':>7}  {'RRF':>7}  {'Gated':>7}  {'Verified':>8}")
+        agg = {"lidar": [], "camera_eigenplaces": [], "fusion_rrf": [],
+               "fusion_gated": [], "fusion_verified": []}
         for r in results:
             b = r["by_distance"]["5m"]
             for kk in agg:
                 agg[kk].append(b[kk]["recall@1"])
             print(f"  {r['sequence']:>4}  {b['lidar']['recall@1']:>7.3f}  "
                   f"{b['camera_eigenplaces']['recall@1']:>7.3f}  {b['fusion_rrf']['recall@1']:>7.3f}  "
-                  f"{b['fusion_gated']['recall@1']:>7.3f}")
+                  f"{b['fusion_gated']['recall@1']:>7.3f}  {b['fusion_verified']['recall@1']:>8.3f}")
         print(f"  {'mean':>4}  {np.mean(agg['lidar']):>7.3f}  "
               f"{np.mean(agg['camera_eigenplaces']):>7.3f}  {np.mean(agg['fusion_rrf']):>7.3f}  "
-              f"{np.mean(agg['fusion_gated']):>7.3f}")
+              f"{np.mean(agg['fusion_gated']):>7.3f}  {np.mean(agg['fusion_verified']):>8.3f}")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(results, indent=2))
     print(f"\nwrote {OUT}")
