@@ -3,6 +3,18 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.11.1 — Geo-verification robustness: ALPHA sweep
+
+- `scripts/benchmark_kitti_fusion.py`: sweeps the geometric-verification
+  acceptance factor ALPHA ∈ {1.0,1.1,1.2,1.3,1.5,2.0} (free once the rank matrices
+  exist) and reports the mean verified R@1 @ 5 m per ALPHA.
+- **Result (substantiates the report's robustness claim):** the mean barely moves
+  over a 2× ALPHA range (0.762–0.784) and stays above every single-modality and
+  score-fusion number throughout — looser ALPHA helps camera-strong forward loops
+  and hurts the blind seq 08 (0.347 → 0.287), so the mean plateaus around 1.3–1.5.
+  The default 1.3 (0.779) is not cherry-picked.
+- docs/findings.md + docs/report.md: ALPHA-sweep table / sentence.
+
 ## 1.11.0 — Technical report
 
 - `docs/report.md`: an arXiv-style, citable consolidation of the three real-data

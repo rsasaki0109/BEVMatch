@@ -162,8 +162,18 @@ complementary-but-individually-limited sensors into a retriever that beats both.
   distance (cheap, one extra call/query) rather than a full SE(3) ICP residual
   with an inlier count. A stronger geometric verifier (BEVMatch's full alignment
   stage) should only sharpen the accept/reject decision; the proxy already
-  suffices to win on all five sequences. ALPHA = 1.3 was set once, not tuned per
-  sequence; the result is not sensitive to small changes.
+  suffices to win on all five sequences.
+- **The acceptance factor ALPHA is not cherry-picked.** Sweeping ALPHA over a 2×
+  range, the mean R@1 @ 5 m barely moves and stays above every single-modality
+  and score-fusion number throughout:
+
+  | ALPHA | 1.0 | 1.1 | 1.2 | **1.3** | 1.5 | 2.0 |
+  |---|---|---|---|---|---|---|
+  | mean verified R@1 | 0.762 | 0.766 | 0.774 | **0.779** | 0.784 | 0.780 |
+
+  Looser ALPHA helps the camera-strong forward loops and hurts the blind seq 08
+  (0.347 → 0.287 from 1.0 → 2.0, as more wrong proposals slip through), so the
+  mean plateaus around 1.3–1.5; the default 1.3 sits on that plateau.
 
 ## Reproduce
 

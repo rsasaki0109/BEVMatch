@@ -53,6 +53,8 @@ from scripts.benchmark_kitti_lidar import (  # noqa: E402  (identical protocol +
 from bevmatch.retrieval.descriptor import sc_alignment_distance  # noqa: E402
 
 RRF_C = 60.0
+ALPHA = 1.3                                  # geometric-verification acceptance factor
+ALPHA_SWEEP = [1.0, 1.1, 1.2, 1.3, 1.5, 2.0]  # robustness check around ALPHA
 LIDAR_CACHE = "/tmp/kitti_seq{seq}_sc_cache.npz"
 CAM_CACHE = "/tmp/kitti_vpr_emb/seq{seq}_eigenplaces_ResNet50_2048.npy"
 OUT = ROOT / "docs" / "assets" / "kitti_fusion_results.json"
@@ -142,7 +144,6 @@ def evaluate(seq: str) -> dict | None:
     # is *geometrically* almost as consistent as LiDAR's own best (SC distance
     # within ALPHA). This catches "confidently wrong" appearance matches that no
     # score gate can: on a reverse loop the camera's pick has poor LiDAR overlap.
-    ALPHA = 1.3
     accept_cam = d_cam <= ALPHA * d_lid
     verified_rank = np.where(accept_cam[:, None], cam_rank, lidar_rank)
     res_pick = {"camera_frac": round(float(pick_cam.mean()), 3),
@@ -181,6 +182,16 @@ def evaluate(seq: str) -> dict | None:
               f"Verified={b['fusion_verified']['recall@1']:.3f}")
     print(f"  (confidence-gate picked camera {res_pick['camera_frac']*100:.0f}%; "
           f"verification accepted camera {res_pick['verify_camera_frac']*100:.0f}%)")
+
+    # robustness: verified R@1 @ 5 m vs the acceptance factor ALPHA (free to sweep
+    # now that d_cam/d_lid and the rank matrices are computed)
+    sweep = {}
+    for a in ALPHA_SWEEP:
+        vr = np.where((d_cam <= a * d_lid)[:, None], cam_rank, lidar_rank)
+        sweep[f"{a:.1f}"] = recall_at(vr, 5.0)["recall@1"]
+    res["alpha_sweep_r1_5m"] = sweep
+    print("  alpha sweep (verified R@1@5m): "
+          + "  ".join(f"a={a}:{sweep[a]:.3f}" for a in sweep))
     return res
 
 
@@ -202,6 +213,12 @@ def main() -> None:
         print(f"  {'mean':>4}  {np.mean(agg['lidar']):>7.3f}  "
               f"{np.mean(agg['camera_eigenplaces']):>7.3f}  {np.mean(agg['fusion_rrf']):>7.3f}  "
               f"{np.mean(agg['fusion_gated']):>7.3f}  {np.mean(agg['fusion_verified']):>8.3f}")
+        if all("alpha_sweep_r1_5m" in r for r in results):
+            print("\n=== geo-verified robustness: mean R@1 @ 5 m vs acceptance factor ALPHA ===")
+            for a in [f"{x:.1f}" for x in ALPHA_SWEEP]:
+                m = np.mean([r["alpha_sweep_r1_5m"][a] for r in results])
+                star = "  <- default" if a == f"{ALPHA:.1f}" else ""
+                print(f"  ALPHA={a}  mean verified R@1 = {m:.3f}{star}")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(results, indent=2))
     print(f"\nwrote {OUT}")
