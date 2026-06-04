@@ -133,21 +133,29 @@ reverse-loop proposal fails the check and is rejected (camera accepted on 16 % o
 seq 08 queries vs 53 % on camera-strong seq 06), while correct forward proposals
 are kept (seq 00 0.963, seq 05 0.922, above LiDAR).
 
-**The verification must be *relative*, not absolute.** We also tried BEVMatch's
-*full* SE2 aligner as the verifier — a 360° BEV cross-correlation + ICP with the
-framework's own `success` verdict (overlap ≥ 0.45) — expecting it to sharpen the
-proxy (`scripts/experiment_icp_verification.py`). It does not. On the decisive
-reverse seq 08 it **accepts the blind camera on 89 % of queries** and lands at
-R@1 = 0.068 (vs the proxy's 0.343), because a BEV cross-correlation *maximises*
-overlap and generic urban structure (roads, façades) exceeds 0.45 even between
-different places — an absolute geometric-success threshold is fooled by
-self-similarity, just as absolute score magnitude was (§4). The proxy works not
-because it is geometric but because it is **comparative**: it asks whether the
-camera's place is as consistent as LiDAR's *own best for that query*. The lesson
-is not "run more ICP" but "verify *relative* to what a true match looks like
-here". (On camera-strong seq 06 the full verifier accepts 100 % and matches the
-camera's 0.977 — it is good at confirming correct matches, only poor at rejecting
-wrong ones.)
+**The verifier must be *calibrated* for rejection — and the relative proxy is
+calibration-free.** We also tried BEVMatch's *full* SE2 aligner as the verifier — a
+360° BEV cross-correlation + ICP with the framework's own `success` verdict
+(overlap ≥ 0.45) — expecting it to sharpen the proxy
+(`scripts/experiment_icp_verification.py`). Out of the box it *fails*: on the blind
+seq 08 it **accepts the camera on 89 % of queries** and lands at R@1 = 0.068 (vs
+the proxy's 0.343), because a BEV cross-correlation *maximises* overlap and generic
+urban structure clears the default 0.45 threshold even between different places.
+But sweeping the overlap threshold τ shows this is *calibration*, not incapacity:
+
+| τ (overlap accept) | 0.45 | 0.55 | 0.65 | 0.75 | 0.85 |
+|---|---|---|---|---|---|
+| seq 08 (blind) R@1 | 0.068 | 0.149 | 0.252 | 0.320 | **0.339** |
+| seq 06 (camera-right) R@1 | 0.977 | 0.977 | **0.979** | 0.972 | 0.929 |
+
+The catch is that the **optimal τ is opposite for the two cases** — the blind loop
+wants a strict threshold (reject), the camera-correct loop a lenient one (accept) —
+so any *single* absolute threshold is a compromise (τ ≈ 0.75 → seq 08 0.320, seq 06
+0.972). The relative proxy reaches comparable quality (seq 08 0.343, seq 06 0.943)
+with **no per-dataset threshold search at all**: one α = 1.3 adapts per query
+because it references LiDAR's *own best for that query*. So a tuned absolute
+verifier is competitive; the relative one is simply tuning-free — and on the blind
+case still marginally ahead (0.343 vs the best single-τ 0.320).
 
 ## 5. Discussion
 
@@ -169,8 +177,9 @@ that beats both.
 - **seq 07 is small** (94 revisit queries) — its absolute number is noisy.
 - **Geometric verification uses a Scan-Context proxy**, not a full SE(3) ICP
   residual with inlier counts. We tested the full SE2 aligner as the verifier
-  (§4) and found it *over-accepts* on self-similar urban geometry; the proxy's
-  *comparative* criterion is what matters, not the verifier's sophistication. The
+  (§4): at its default success threshold it over-accepts and fails the blind case,
+  and a threshold sweep shows it is competitive only once tuned — with a
+  sequence-dependent optimum — whereas the relative proxy is calibration-free. The
   acceptance factor α is not cherry-picked:
   sweeping it over a 2× range (α ∈ [1.0, 2.0]) moves the mean R@1 @ 5 m only
   within 0.762–0.784 and beats every single-modality and score-fusion number

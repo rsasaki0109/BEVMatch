@@ -157,18 +157,19 @@ complementary-but-individually-limited sensors into a retriever that beats both.
   its five loop sequences, but cross-dataset generalisation is untested here.
 - **seq 07 is small.** 94 revisit queries; treat its absolute number as noisy
   (the *direction* of the EigenPlaces improvement is still clear).
-- **A "stronger" geometric verifier is not automatically better.** We replaced the
-  Scan-Context proxy with BEVMatch's full SE2 aligner (BEV cross-correlation + ICP,
-  `success` = overlap ≥ 0.45) as the verifier
-  (`scripts/experiment_icp_verification.py`). It *over-accepts*: on the blind
-  seq 08 it accepts the camera on 89 % of queries (vs the proxy's 14 %) and lands
-  at R@1 = 0.068 (vs 0.343) — a BEV cross-correlation maximises overlap, and
-  generic urban structure clears 0.45 even between different places. The proxy
-  wins because it is *comparative* (is the camera's place as consistent as LiDAR's
-  own best for this query?), not because it is geometric. On camera-strong seq 06
-  the full verifier accepts 100 % and matches the camera (0.977) — good at
-  confirming, poor at rejecting. The takeaway: a *relative* verification criterion,
-  not a more sophisticated absolute one.
+- **A "stronger" geometric verifier needs calibration; the relative proxy does
+  not.** We replaced the Scan-Context proxy with BEVMatch's full SE2 aligner (BEV
+  cross-correlation + ICP, `success` = overlap ≥ 0.45) as the verifier
+  (`scripts/experiment_icp_verification.py`). Out of the box it *over-accepts*: on
+  blind seq 08 it accepts the camera on 89 % of queries and lands at R@1 = 0.068
+  (vs the proxy's 0.343). But a threshold sweep shows that is calibration, not
+  incapacity — a stricter τ recovers most (seq 08: 0.068 → 0.339 as τ 0.45 → 0.85).
+  The catch is the optimal τ is *opposite* per sequence (blind seq 08 wants strict,
+  camera-right seq 06 wants lenient: 0.977 → 0.929 as τ tightens), so one absolute
+  threshold is a compromise (τ ≈ 0.75 → seq 08 0.320, seq 06 0.972). The relative
+  proxy matches that with **no per-dataset tuning** (one α = 1.3 → 0.343 / 0.943),
+  and is marginally ahead on the blind case. So: a tuned absolute verifier is
+  competitive; the relative one is simply calibration-free.
 - **The acceptance factor ALPHA is not cherry-picked.** Sweeping ALPHA over a 2×
   range, the mean R@1 @ 5 m barely moves and stays above every single-modality
   and score-fusion number throughout:
