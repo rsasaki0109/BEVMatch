@@ -1,8 +1,9 @@
 # BEVMatch
 
 <p align="center">
-  <img src="docs/assets/bevmatch_hero.gif" alt="BEVMatch — retrieve the same place, align it, and explain what changed" width="100%">
+  <img src="docs/assets/bevmatch_hero.gif" alt="BEVMatch localizing a real LiDAR observation against a real 109M-point survey map" width="100%">
 </p>
+<p align="center"><sub><b>Real data:</b> a LiDAR observation localized against a real 109M-point survey map — BEVMatch retrieves the place among real tiles and recovers the SE2 pose + covariance (actual pipeline output).</sub></p>
 
 > BEVMatch is not another place recognition method.
 > It is an OSS pipeline for finding the same place, aligning it, comparing it, and turning differences into map validation evidence.
