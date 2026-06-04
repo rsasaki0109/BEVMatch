@@ -1,5 +1,9 @@
 # BEVMatch
 
+<p align="center">
+  <img src="docs/assets/bevmatch_hero.gif" alt="BEVMatch — retrieve the same place, align it, and explain what changed" width="100%">
+</p>
+
 > BEVMatch is not another place recognition method.
 > It is an OSS pipeline for finding the same place, aligning it, comparing it, and turning differences into map validation evidence.
 
