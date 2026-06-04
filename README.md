@@ -8,9 +8,14 @@
 </p>
 
 <p align="center">
+  <img src="docs/assets/bevmatch_camera_bev.gif" alt="BEVMatch recognizing a place in a camera-derived bird's-eye view: stereo depth turns the camera into a BEV, then the current BEV is retrieved and aligned onto the matched map BEV" width="100%">
+</p>
+<p align="center"><sub><b>Real data, actual pipeline output.</b> A revisit on KITTI seq 00: stereo depth turns the <b>camera</b> into a <b>bird's-eye view</b>, BEVMatch <b>retrieves</b> the matching first-visit place (score 0.98) and <b>aligns</b> the two camera BEVs (gold = matched map, cyan = current) — the same place, recognized in a camera BEV.</sub></p>
+
+<p align="center">
   <img src="docs/assets/bevmatch_hero.gif" alt="BEVMatch localizing a real LiDAR observation against a real 109M-point survey map: it retrieves the matching map tile and recovers the SE2 pose with covariance" width="100%">
 </p>
-<p align="center"><sub><b>Real data, actual pipeline output.</b> A LiDAR observation is localized against a real 109M-point survey map — BEVMatch <b>retrieves</b> the matching place tile (score 0.98), <b>aligns</b> it, and recovers the <b>SE2 pose + covariance</b> as an initial pose for Autoware / Nav2.</sub></p>
+<p align="center"><sub>Same pipeline, <b>LiDAR</b> input: a real observation localized against a real 109M-point survey map — retrieve the place tile (score 0.98), align it, and recover the <b>SE2 pose + covariance</b> as an initial pose for Autoware / Nav2.</sub></p>
 
 > **BEVMatch is not another place-recognition method.**
 > It is an OSS pipeline for **finding the same place, aligning it, comparing it, and turning the differences into map-validation evidence** — across LiDAR, camera, and radar.
