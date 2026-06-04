@@ -3,6 +3,23 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.12.1 — Overlap-threshold sweep refines the verifier claim (a second correction)
+
+- `scripts/experiment_icp_verification.py`: sweeps the full-ICP verifier's overlap
+  acceptance threshold τ ∈ {0.45..0.85} on seq 08 (blind) and seq 06 (camera-right)
+  and reports verified R@1 @ 5 m + accept fraction per τ.
+- **Refines v1.12.0's "relative beats absolute".** That framing was too strong. The
+  sweep shows the full verifier's failure is *calibration*, not incapacity: a
+  stricter τ recovers most of seq 08 (0.068 → 0.339 as τ 0.45 → 0.85). The real
+  point is the optimal τ is *opposite* per sequence (blind wants strict, camera-
+  right wants lenient — seq 06 0.977 → 0.929 as τ tightens), so any single absolute
+  threshold is a compromise (τ ≈ 0.75 → seq 08 0.320, seq 06 0.972). The relative
+  proxy matches that with no per-dataset tuning (one α = 1.3 → 0.343 / 0.943) and is
+  marginally ahead on the blind case. So a tuned absolute verifier is competitive;
+  the relative one is simply calibration-free.
+- docs/report.md + docs/findings.md: τ-sweep table added; the absolute-vs-relative
+  wording softened to calibration-free-vs-tuned.
+
 ## 1.12.0 — Full SE2-ICP verifier probe: relative beats absolute (corrects a claim)
 
 - `scripts/experiment_icp_verification.py`: replaces the Scan-Context proxy in the

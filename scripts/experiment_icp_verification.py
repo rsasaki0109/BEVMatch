@@ -126,10 +126,12 @@ def evaluate(seq: str) -> dict | None:
         return xy_cache[i]
 
     accept_icp = np.zeros(n, dtype=bool)
+    overlap = np.zeros(n, dtype=float)  # the aligner's overlap_ratio per query frame
     t0 = time.time()
     for k, q in enumerate(query_frames):
         hyp = align_se2(xy(int(q)), xy(int(cam_top1[q])), VCFG)
         accept_icp[q] = bool(hyp.success)
+        overlap[q] = float(hyp.overlap_ratio)
         if k % 200 == 0 or k == len(query_frames) - 1:
             print(f"  icp-verify {k + 1}/{len(query_frames)} ({time.time()-t0:.0f}s)",
                   end="\r", flush=True)
@@ -168,6 +170,24 @@ def evaluate(seq: str) -> dict | None:
           f"verified[ICP]={b['verified_full_icp']['recall@1']:.3f}")
     print(f"  (camera accepted: SC-proxy {res['accept_frac_sc']*100:.0f}%, "
           f"full-ICP {res['accept_frac_icp']*100:.0f}%)")
+
+    # Can ANY absolute overlap threshold rescue the full-ICP verifier? Sweep tau:
+    # accept the camera iff overlap_ratio >= tau, and report verified R@1 @ 5 m.
+    # If the best tau still trails the relative SC-proxy, the criterion must be
+    # relative, not merely better-thresholded.
+    sweep = {}
+    for tau in [0.45, 0.55, 0.65, 0.75, 0.85]:
+        acc = overlap >= tau
+        vr = np.where(acc[:, None], cam_rank, lidar_rank)
+        sweep[f"{tau:.2f}"] = {"r1_5m": recall_at(vr, 5.0)["recall@1"],
+                               "accept_frac": round(float(acc[query_frames].mean()), 3)}
+    res["icp_overlap_threshold_sweep"] = sweep
+    best = max(sweep.values(), key=lambda v: v["r1_5m"])
+    print("  ICP overlap-threshold sweep (verified R@1@5m / accept%): "
+          + "  ".join(f"t={t}:{sweep[t]['r1_5m']:.3f}/{sweep[t]['accept_frac']*100:.0f}%"
+                      for t in sweep))
+    print(f"  best absolute-threshold R@1@5m = {best['r1_5m']:.3f}  "
+          f"(SC-proxy relative = {b['verified_sc_proxy']['recall@1']:.3f})")
     return res
 
 
