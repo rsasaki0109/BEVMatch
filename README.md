@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.7.0-informational" alt="v1.7.0">
+  <img src="https://img.shields.io/badge/version-1.8.0-informational" alt="v1.8.0">
 </p>
 
 <p align="center">
@@ -49,6 +49,12 @@ retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2
 公開データセット **KITTI odometry** 上で、標準的な place-recognition プロトコル
 （positive = GT pose 距離 ≤ D かつ時間 30s 超離れ、時間近傍は検索から除外）で
 BEVMatch 自身の検索パイプラインの **Recall@K を実測**した結果です（合成データではありません）。
+
+<p align="center">
+  <img src="docs/assets/bevmatch_results_summary.png" alt="Recall@1 @ 5m across KITTI loop sequences for three descriptors behind one BEVMatch interface — a learned SOTA descriptor lifts the forward cases but both camera descriptors collapse on reverse-direction seq 08, while the 360° LiDAR holds and recovers by a config swap" width="92%">
+</p>
+
+<p align="center"><sub><b>研究ストーリーを1枚に</b>：手作り LiDAR・generic camera・学習系 camera SOTA の3 descriptor を<b>同一インタフェース・同一プロトコル</b>で実測（R@1 @ 5m）。学習系は順方向を押し上げるが、<b>逆方向 seq 08 では両カメラとも ~0.02 に崩壊（視点の壁）</b>。360° LiDAR だけが 0.34 を保ち、config 差し替えのみで 0.76 へ回復。再現: <code>python scripts/make_results_summary.py</code>。</sub></p>
 
 **LiDAR と camera を 5 つのループ列で同一プロトコル比較**（Recall@1 @ 5 m）:
 
