@@ -1,0 +1,170 @@
+[
+  {
+    "sequence": "08",
+    "frames": 4071,
+    "accept_frac_sc": 0.143,
+    "accept_frac_icp": 0.886,
+    "by_distance": {
+      "5m": {
+        "lidar": {
+          "n_queries": 616,
+          "recall@1": 0.3393,
+          "recall@5": 0.3847,
+          "recall@10": 0.4123,
+          "recall@20": 0.4334
+        },
+        "camera_eigenplaces": {
+          "n_queries": 616,
+          "recall@1": 0.0146,
+          "recall@5": 0.0438,
+          "recall@10": 0.0698,
+          "recall@20": 0.0925
+        },
+        "verified_sc_proxy": {
+          "n_queries": 616,
+          "recall@1": 0.3425,
+          "recall@5": 0.3831,
+          "recall@10": 0.414,
+          "recall@20": 0.4432
+        },
+        "verified_full_icp": {
+          "n_queries": 616,
+          "recall@1": 0.0682,
+          "recall@5": 0.1006,
+          "recall@10": 0.1331,
+          "recall@20": 0.1607
+        }
+      },
+      "10m": {
+        "lidar": {
+          "n_queries": 805,
+          "recall@1": 0.2994,
+          "recall@5": 0.359,
+          "recall@10": 0.4087,
+          "recall@20": 0.4484
+        },
+        "camera_eigenplaces": {
+          "n_queries": 805,
+          "recall@1": 0.0273,
+          "recall@5": 0.082,
+          "recall@10": 0.1329,
+          "recall@20": 0.1689
+        },
+        "verified_sc_proxy": {
+          "n_queries": 805,
+          "recall@1": 0.3031,
+          "recall@5": 0.359,
+          "recall@10": 0.4137,
+          "recall@20": 0.4634
+        }
+      },
+      "25m": {
+        "lidar": {
+          "n_queries": 1080,
+          "recall@1": 0.3204,
+          "recall@5": 0.4537,
+          "recall@10": 0.5102,
+          "recall@20": 0.5491
+        },
+        "camera_eigenplaces": {
+          "n_queries": 1080,
+          "recall@1": 0.2083,
+          "recall@5": 0.2889,
+          "recall@10": 0.3407,
+          "recall@20": 0.4009
+        },
+        "verified_sc_proxy": {
+          "n_queries": 1080,
+          "recall@1": 0.3537,
+          "recall@5": 0.4694,
+          "recall@10": 0.5296,
+          "recall@20": 0.5657
+        }
+      }
+    }
+  },
+  {
+    "sequence": "06",
+    "frames": 1101,
+    "accept_frac_sc": 0.789,
+    "accept_frac_icp": 1.0,
+    "by_distance": {
+      "5m": {
+        "lidar": {
+          "n_queries": 565,
+          "recall@1": 0.8867,
+          "recall@5": 0.8991,
+          "recall@10": 0.8991,
+          "recall@20": 0.9009
+        },
+        "camera_eigenplaces": {
+          "n_queries": 565,
+          "recall@1": 0.977,
+          "recall@5": 0.9858,
+          "recall@10": 0.9876,
+          "recall@20": 0.9929
+        },
+        "verified_sc_proxy": {
+          "n_queries": 565,
+          "recall@1": 0.9434,
+          "recall@5": 0.9504,
+          "recall@10": 0.9522,
+          "recall@20": 0.9558
+        },
+        "verified_full_icp": {
+          "n_queries": 565,
+          "recall@1": 0.977,
+          "recall@5": 0.9858,
+          "recall@10": 0.9876,
+          "recall@20": 0.9929
+        }
+      },
+      "10m": {
+        "lidar": {
+          "n_queries": 581,
+          "recall@1": 0.8623,
+          "recall@5": 0.883,
+          "recall@10": 0.8847,
+          "recall@20": 0.9088
+        },
+        "camera_eigenplaces": {
+          "n_queries": 581,
+          "recall@1": 0.9639,
+          "recall@5": 0.969,
+          "recall@10": 0.9725,
+          "recall@20": 0.9725
+        },
+        "verified_sc_proxy": {
+          "n_queries": 581,
+          "recall@1": 0.9208,
+          "recall@5": 0.9312,
+          "recall@10": 0.9329,
+          "recall@20": 0.9535
+        }
+      },
+      "25m": {
+        "lidar": {
+          "n_queries": 863,
+          "recall@1": 0.5979,
+          "recall@5": 0.6338,
+          "recall@10": 0.6732,
+          "recall@20": 0.7532
+        },
+        "camera_eigenplaces": {
+          "n_queries": 863,
+          "recall@1": 0.7045,
+          "recall@5": 0.7277,
+          "recall@10": 0.7555,
+          "recall@20": 0.8007
+        },
+        "verified_sc_proxy": {
+          "n_queries": 863,
+          "recall@1": 0.6501,
+          "recall@5": 0.6825,
+          "recall@10": 0.7231,
+          "recall@20": 0.7984
+        }
+      }
+    }
+  }
+]
