@@ -1,0 +1,157 @@
+[
+  {
+    "sequence": "00",
+    "frames": 4541,
+    "time_exclude_s": 30.0,
+    "descriptor": "EigenPlaces (ResNet50, 2048-d, SF-XL pretrained \u2014 KITTI held out)",
+    "source": "gmberton/eigenplaces (MIT)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 1706,
+        "recall@1": 0.9566,
+        "recall@5": 0.9642,
+        "recall@10": 0.9678,
+        "recall@20": 0.9742
+      },
+      "10m": {
+        "n_queries": 1838,
+        "recall@1": 0.9157,
+        "recall@5": 0.9238,
+        "recall@10": 0.9282,
+        "recall@20": 0.9369
+      },
+      "25m": {
+        "n_queries": 2089,
+        "recall@1": 0.8463,
+        "recall@5": 0.8612,
+        "recall@10": 0.8722,
+        "recall@20": 0.8837
+      }
+    }
+  },
+  {
+    "sequence": "05",
+    "frames": 2761,
+    "time_exclude_s": 30.0,
+    "descriptor": "EigenPlaces (ResNet50, 2048-d, SF-XL pretrained \u2014 KITTI held out)",
+    "source": "gmberton/eigenplaces (MIT)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 963,
+        "recall@1": 0.9138,
+        "recall@5": 0.9387,
+        "recall@10": 0.9502,
+        "recall@20": 0.9595
+      },
+      "10m": {
+        "n_queries": 1139,
+        "recall@1": 0.8314,
+        "recall@5": 0.8402,
+        "recall@10": 0.8464,
+        "recall@20": 0.8534
+      },
+      "25m": {
+        "n_queries": 1317,
+        "recall@1": 0.7456,
+        "recall@5": 0.7616,
+        "recall@10": 0.7715,
+        "recall@20": 0.7882
+      }
+    }
+  },
+  {
+    "sequence": "06",
+    "frames": 1101,
+    "time_exclude_s": 30.0,
+    "descriptor": "EigenPlaces (ResNet50, 2048-d, SF-XL pretrained \u2014 KITTI held out)",
+    "source": "gmberton/eigenplaces (MIT)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 565,
+        "recall@1": 0.977,
+        "recall@5": 0.9858,
+        "recall@10": 0.9876,
+        "recall@20": 0.9929
+      },
+      "10m": {
+        "n_queries": 581,
+        "recall@1": 0.9639,
+        "recall@5": 0.969,
+        "recall@10": 0.9725,
+        "recall@20": 0.9725
+      },
+      "25m": {
+        "n_queries": 863,
+        "recall@1": 0.7045,
+        "recall@5": 0.7277,
+        "recall@10": 0.7555,
+        "recall@20": 0.8007
+      }
+    }
+  },
+  {
+    "sequence": "07",
+    "frames": 1101,
+    "time_exclude_s": 30.0,
+    "descriptor": "EigenPlaces (ResNet50, 2048-d, SF-XL pretrained \u2014 KITTI held out)",
+    "source": "gmberton/eigenplaces (MIT)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 94,
+        "recall@1": 0.6809,
+        "recall@5": 0.7021,
+        "recall@10": 0.7128,
+        "recall@20": 0.7234
+      },
+      "10m": {
+        "n_queries": 126,
+        "recall@1": 0.8254,
+        "recall@5": 0.8333,
+        "recall@10": 0.8413,
+        "recall@20": 0.8571
+      },
+      "25m": {
+        "n_queries": 185,
+        "recall@1": 0.6486,
+        "recall@5": 0.6703,
+        "recall@10": 0.6757,
+        "recall@20": 0.6973
+      }
+    }
+  },
+  {
+    "sequence": "08",
+    "frames": 4071,
+    "time_exclude_s": 30.0,
+    "descriptor": "EigenPlaces (ResNet50, 2048-d, SF-XL pretrained \u2014 KITTI held out)",
+    "source": "gmberton/eigenplaces (MIT)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 616,
+        "recall@1": 0.0146,
+        "recall@5": 0.0438,
+        "recall@10": 0.0698,
+        "recall@20": 0.0925
+      },
+      "10m": {
+        "n_queries": 805,
+        "recall@1": 0.0273,
+        "recall@5": 0.082,
+        "recall@10": 0.1329,
+        "recall@20": 0.1689
+      },
+      "25m": {
+        "n_queries": 1080,
+        "recall@1": 0.2083,
+        "recall@5": 0.2889,
+        "recall@10": 0.3407,
+        "recall@20": 0.4009
+      }
+    }
+  }
+]

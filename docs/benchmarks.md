@@ -58,9 +58,42 @@ that is not a bug. seq 08's revisits are *reverse-direction*: a forward-facing
 camera driving back the opposite way sees the **opposite view** of the same
 place, so an appearance descriptor essentially cannot match it. This is the
 textbook failure mode of camera VPR — and exactly where a 360°, rotation-
-invariant LiDAR descriptor still works (see the cross-modal section). VPR-
-specialised learned descriptors (NetVLAD / Patch-NetVLAD) raise the forward
-numbers; the descriptor is a plugin, so that is a drop-in change.
+invariant LiDAR descriptor still works (see the cross-modal section).
+
+### Swapping in a learned SOTA descriptor (EigenPlaces)
+
+The descriptor is a plugin, so a purpose-trained place-recognition network drops
+straight in. We benchmark **EigenPlaces** (Berton et al., ICCV 2023 — ResNet-50 +
+GeM + FC, 2048-d, cosine), trained on San Francisco eXtra Large street-view.
+**SF-XL is disjoint from KITTI**, so KITTI is a genuine held-out domain for *every*
+sequence — no train-on-test caveat anywhere. Identical protocol; the in-script
+framework check confirms `SceneDatabase` reproduces the learned ranking too.
+
+Reproduce: `python scripts/benchmark_kitti_vpr_learned.py` (EigenPlaces is MIT,
+loaded at runtime via `torch.hub`; nothing is vendored).
+
+| sequence | ResNet-18 (ImageNet) R@1 | EigenPlaces R@1 | Δ |
+|---|---|---|---|
+| 00                   | 0.923 | **0.957** | +0.034 |
+| 05                   | 0.848 | **0.914** | +0.066 |
+| 06                   | 0.977 | 0.977 | ±0 (ceiling) |
+| 07 (few revisits)    | 0.500 | **0.681** | +0.181 |
+| 08 (**reverse** loops) | 0.015 | 0.015 | **±0** |
+| **mean**             | 0.653 | **0.709** | +0.056 |
+
+Full table in [`docs/assets/kitti_vpr_learned_results.json`](assets/kitti_vpr_learned_results.json).
+
+*The finding that matters is seq 08.* A learned SOTA descriptor lifts every
+**forward** revisit case (seq 07 jumps +0.18, seq 00/05 climb several points) —
+representation quality clearly helps where the view is shared. **But on the
+reverse-direction loops it is pinned at 0.015, byte-for-byte the baseline.** No
+amount of descriptor learning recovers it: the forward-facing camera simply never
+observes the opposite-direction view, so there is nothing for *any* appearance
+descriptor to match. This is a **viewpoint/geometry wall, not a representation
+gap** — and exactly the asymmetry that justifies a modality-agnostic framework.
+Contrast the LiDAR side below, where the *same* reverse case is recoverable
+(0.339 → 0.765) by widening the descriptor, because a 360° sensor *does* observe
+the place from the opposite pass.
 
 ## LiDAR — Scan-Context place recognition
 
