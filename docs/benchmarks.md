@@ -104,6 +104,29 @@ descriptor is a plugin: a learned LiDAR descriptor (OverlapTransformer,
 LoGG3D-Net, …) or a wider range / finer grid can be dropped in without touching
 the rest of the pipeline — these numbers are the floor, not the ceiling.
 
+### Tuning the descriptor recovers the reverse-loop case
+
+The seq 08 number above (R@1 = 0.34) is the *default* config, not a ceiling.
+Scan-Context is already rotation-invariant (its column shift covers the 180°),
+so a reverse revisit should be reachable — the limiting factor is **range**: a
+reverse pass is on the *opposite lane*, so the overlapping structure sits
+further out than the default 30 m window. Widening the descriptor — a pure
+plugin-config swap, no pipeline change — confirms this:
+
+Reproduce: `python scripts/experiment_scancontext_config.py`
+
+| sequence | `default` (20×60, 30 m) | `wide` (40×120, 80 m) | Δ R@1 |
+|---|---|---|---|
+| 00 (forward) | 0.913 | 0.966 | +0.053 |
+| 08 (**reverse**) | 0.339 | **0.765** | **+0.426** |
+
+Widening **more than doubles** reverse-loop recall (0.34 → 0.77) while only
+nudging the already-easy forward case (+0.05). So seq 08's low default number is
+a *config* limitation, not a fundamental one — and the framework lets you fix it
+by swapping the descriptor config alone. (Contrast the camera, below: its seq 08
+collapse is intrinsic to a forward-facing appearance sensor and **cannot** be
+tuned away.)
+
 ## Cross-modal — same place, same protocol, two sensors
 
 Both descriptors run through the **same retrieval framework**, on the **same

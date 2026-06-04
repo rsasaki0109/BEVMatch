@@ -3,6 +3,19 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.5.0 — Reverse-loop recovered by descriptor tuning
+
+- `scripts/experiment_scancontext_config.py`: A/B of the Scan-Context descriptor
+  config (default 20×60/30 m vs wide 40×120/80 m) on a forward (00) and a
+  reverse (08) sequence.
+- **Finding:** widening the descriptor — a pure plugin-config swap, no pipeline
+  change — more than doubles reverse-loop recall (seq 08 R@1 0.339 → 0.765)
+  while only nudging the forward case (seq 00 0.913 → 0.966). seq 08's low
+  default number is a config limitation, not a fundamental one. The camera's
+  seq 08 collapse, by contrast, is intrinsic and not tunable — the asymmetry
+  that motivates a multi-modal framework.
+- docs/benchmarks.md + README: reverse-loop tuning table.
+
 ## 1.4.0 — Cross-modal multi-sequence benchmark
 
 - Camera VPR extended across the KITTI loop sequences 00/05/06/07/08

@@ -1,0 +1,30 @@
+{
+  "00": {
+    "default (20x60, 30m)": {
+      "recall@1": 0.9132,
+      "recall@5": 0.9197,
+      "recall@20": 0.9285,
+      "n_queries": 1706
+    },
+    "wide (40x120, 80m)": {
+      "recall@1": 0.966,
+      "recall@5": 0.9725,
+      "recall@20": 0.9789,
+      "n_queries": 1706
+    }
+  },
+  "08": {
+    "default (20x60, 30m)": {
+      "recall@1": 0.3393,
+      "recall@5": 0.3847,
+      "recall@20": 0.4334,
+      "n_queries": 616
+    },
+    "wide (40x120, 80m)": {
+      "recall@1": 0.7646,
+      "recall@5": 0.8036,
+      "recall@20": 0.836,
+      "n_queries": 616
+    }
+  }
+}
