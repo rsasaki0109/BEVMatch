@@ -200,6 +200,37 @@ camera is often the stronger of the two (seq 06: 0.977 vs 0.887).
 No single sensor wins everywhere — which is the argument for a modality-agnostic
 comparison framework rather than a LiDAR-only or camera-only one.
 
+## Fusion — combining the two is not a free lunch
+
+If the modalities fail differently, does fusing them recover the blind cases? We
+test two ground-truth-free late-fusion strategies over the *same* rankings
+(`python scripts/benchmark_kitti_fusion.py`): equal-weight **Reciprocal Rank
+Fusion**, and a **confidence gate** that, per query, trusts whichever sensor has
+the larger top-1-vs-top-2 score margin (Lowe-style, normalised per modality).
+
+| seq | LiDAR | Camera (EigenPlaces) | naive RRF | confidence-gated |
+|---|---|---|---|---|
+| 00 | 0.913 | 0.957 | 0.957 | 0.939 |
+| 05 | 0.783 | 0.914 | 0.819 | 0.841 |
+| 06 | 0.887 | 0.977 | 0.904 | 0.927 |
+| 07 | 0.596 | 0.681 | **0.713** | 0.660 |
+| 08 (**reverse**) | **0.339** | 0.015 | 0.081 | 0.203 |
+| **mean** | 0.704 | 0.709 | 0.695 | **0.714** |
+
+Full numbers in [`docs/assets/kitti_fusion_results.json`](assets/kitti_fusion_results.json).
+
+- **Naive equal-weight RRF is a net loss** (mean 0.695, below both single
+  modalities): on seq 08 the blind camera drags LiDAR down from 0.339 to 0.081.
+- **The confidence gate is the best on average** (0.714) — robust, never
+  catastrophic — **but still does not recover the blind case** (seq 08 → 0.203,
+  short of LiDAR's 0.339; the gate picks the blind camera ~49% of the time
+  because a within-sequence self-normalised margin can't encode global blindness).
+
+The honest takeaway: late fusion of a working and a blind sensor is not
+automatically better than the working one; recovering the blind case needs
+**absolute cross-modal confidence calibration**, not naive score combination.
+Full reasoning in [Two findings → Finding 3](findings.md).
+
 ## Notes on honesty
 
 - The synthetic demo tables (`examples/run_*_eval.py`, some README snippets)
