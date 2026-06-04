@@ -3,6 +3,16 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.3.0 — Multi-sequence LiDAR benchmark
+
+- LiDAR Scan-Context Recall@K extended across the **KITTI loop sequences**
+  00/05/06/07/08 (`scripts/benchmark_kitti_lidar.py [seqs...]`), with a
+  per-sequence table + mean (R@1 = 0.704 @ 5 m across 5 sequences).
+- Honest reporting of hard cases: seq 08 (reverse-direction revisits, R@1 = 0.34)
+  and seq 07 (only 94 revisits) are reported, not hidden.
+- `scripts/_extract_velodyne_blocks.py`: per-sequence contiguous range download
+  + local-header extraction of velodyne from the public KITTI archive.
+
 ## 1.2.0 — Real public-data benchmarks
 
 - **KITTI odometry place-recognition benchmarks** with real Recall@K, standard

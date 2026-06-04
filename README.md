@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.2.0-informational" alt="v1.2.0">
+  <img src="https://img.shields.io/badge/version-1.3.0-informational" alt="v1.3.0">
 </p>
 
 <p align="center">
@@ -41,23 +41,31 @@ retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2
 
 ## Real-data benchmarks — KITTI odometry (place recognition)
 
-公開データセット **KITTI odometry seq 00** 上で、標準的な place-recognition プロトコル
+公開データセット **KITTI odometry** 上で、標準的な place-recognition プロトコル
 （positive = GT pose 距離 ≤ D かつ時間 30s 超離れ、時間近傍は検索から除外）で
 BEVMatch 自身の検索パイプラインの **Recall@K を実測**した結果です（合成データではありません）。
-同一シーケンス・同一プロトコルで **LiDAR と camera を比較**でき、Principle 2（modality ≠ representation）を実証します。
+
+**同一 seq 00・同一プロトコルで LiDAR と camera を比較**（Principle 2: modality ≠ representation）:
 
 | modality | descriptor | Recall@1 | Recall@5 | Recall@20 | queries |
 |---|---|---|---|---|---|
 | LiDAR  | Scan-Context (ring-key + SC rerank) | **0.913** | 0.920 | 0.928 | 1706 |
 | Camera | ResNet-18 embedding (ImageNet)      | **0.923** | 0.942 | 0.954 | 1706 |
 
-<sub>positive radius 5 m。R@1 ≈ 0.91（Scan-Context）は文献のベースライン水準。descriptor は
-プラグインなので、学習系（OverlapTransformer / NetVLAD 等）に差し替えれば上限はさらに伸びます。
-全距離閾値（5/10/25 m）の表・プロトコル詳細・正直な注記は [docs/benchmarks.md](docs/benchmarks.md)。</sub>
+**LiDAR Scan-Context を 5 つのループ列で評価**（positive radius 5 m, R@1）:
+
+| seq | 00 | 05 | 06 | 07 | 08 | **mean** |
+|---|---|---|---|---|---|---|
+| R@1 | 0.913 | 0.783 | 0.887 | 0.596 | 0.339 | **0.704** |
+
+<sub>seq 00/06（順方向ループ）は R@1≈0.89–0.91 と文献の Scan-Context 水準。seq 08 は
+**逆方向再訪**主体で多くの記述子が苦手とする難所（R@1=0.34）で、隠さず報告。seq 07 は revisit が
+94 件と少なくノイジー。descriptor は default config（20×60 polar, 30m）の素のベースラインで、
+学習系や広レンジに差し替え可能。全シーケンス・全閾値・正直な注記は [docs/benchmarks.md](docs/benchmarks.md)。</sub>
 
 ```bash
-python scripts/benchmark_kitti_vpr.py     # camera VPR Recall@K
-python scripts/benchmark_kitti_lidar.py   # LiDAR Scan-Context Recall@K
+python scripts/benchmark_kitti_vpr.py            # camera VPR Recall@K (seq 00)
+python scripts/benchmark_kitti_lidar.py          # LiDAR Scan-Context, all loop sequences
 ```
 
 > 注: 本 README 下部の合成データ表（満点が出るもの）は配線の sanity check であり、手法の性能評価ではありません。性能は本節と [docs/benchmarks.md](docs/benchmarks.md) で判断してください。

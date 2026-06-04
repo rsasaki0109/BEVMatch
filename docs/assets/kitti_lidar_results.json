@@ -11,7 +11,6 @@
       "voxel_m": 0.5,
       "rerank": 25
     },
-    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
     "by_distance": {
       "5m": {
         "n_queries": 1706,
@@ -33,6 +32,150 @@
         "recall@5": 0.7793,
         "recall@10": 0.7927,
         "recall@20": 0.8066
+      }
+    }
+  },
+  {
+    "sequence": "05",
+    "scans": 2761,
+    "time_exclude_s": 30.0,
+    "descriptor": "ScanContextDescriptor (ring-key KNN prefilter + SC column-shift rerank)",
+    "config": {
+      "n_rings": 20,
+      "n_sectors": 60,
+      "max_range_m": 30.0,
+      "voxel_m": 0.5,
+      "rerank": 25
+    },
+    "by_distance": {
+      "5m": {
+        "n_queries": 963,
+        "recall@1": 0.783,
+        "recall@5": 0.7975,
+        "recall@10": 0.8017,
+        "recall@20": 0.8037
+      },
+      "10m": {
+        "n_queries": 1139,
+        "recall@1": 0.6839,
+        "recall@5": 0.7234,
+        "recall@10": 0.755,
+        "recall@20": 0.7893
+      },
+      "25m": {
+        "n_queries": 1317,
+        "recall@1": 0.6052,
+        "recall@5": 0.6629,
+        "recall@10": 0.7008,
+        "recall@20": 0.7578
+      }
+    }
+  },
+  {
+    "sequence": "06",
+    "scans": 1101,
+    "time_exclude_s": 30.0,
+    "descriptor": "ScanContextDescriptor (ring-key KNN prefilter + SC column-shift rerank)",
+    "config": {
+      "n_rings": 20,
+      "n_sectors": 60,
+      "max_range_m": 30.0,
+      "voxel_m": 0.5,
+      "rerank": 25
+    },
+    "by_distance": {
+      "5m": {
+        "n_queries": 565,
+        "recall@1": 0.8867,
+        "recall@5": 0.8991,
+        "recall@10": 0.8991,
+        "recall@20": 0.9009
+      },
+      "10m": {
+        "n_queries": 581,
+        "recall@1": 0.8623,
+        "recall@5": 0.883,
+        "recall@10": 0.8847,
+        "recall@20": 0.9088
+      },
+      "25m": {
+        "n_queries": 863,
+        "recall@1": 0.5979,
+        "recall@5": 0.6338,
+        "recall@10": 0.6732,
+        "recall@20": 0.7532
+      }
+    }
+  },
+  {
+    "sequence": "07",
+    "scans": 1101,
+    "time_exclude_s": 30.0,
+    "descriptor": "ScanContextDescriptor (ring-key KNN prefilter + SC column-shift rerank)",
+    "config": {
+      "n_rings": 20,
+      "n_sectors": 60,
+      "max_range_m": 30.0,
+      "voxel_m": 0.5,
+      "rerank": 25
+    },
+    "by_distance": {
+      "5m": {
+        "n_queries": 94,
+        "recall@1": 0.5957,
+        "recall@5": 0.6277,
+        "recall@10": 0.6383,
+        "recall@20": 0.6383
+      },
+      "10m": {
+        "n_queries": 126,
+        "recall@1": 0.4524,
+        "recall@5": 0.5159,
+        "recall@10": 0.5238,
+        "recall@20": 0.5317
+      },
+      "25m": {
+        "n_queries": 185,
+        "recall@1": 0.3189,
+        "recall@5": 0.3676,
+        "recall@10": 0.3838,
+        "recall@20": 0.4162
+      }
+    }
+  },
+  {
+    "sequence": "08",
+    "scans": 4071,
+    "time_exclude_s": 30.0,
+    "descriptor": "ScanContextDescriptor (ring-key KNN prefilter + SC column-shift rerank)",
+    "config": {
+      "n_rings": 20,
+      "n_sectors": 60,
+      "max_range_m": 30.0,
+      "voxel_m": 0.5,
+      "rerank": 25
+    },
+    "by_distance": {
+      "5m": {
+        "n_queries": 616,
+        "recall@1": 0.3393,
+        "recall@5": 0.3847,
+        "recall@10": 0.4123,
+        "recall@20": 0.4334
+      },
+      "10m": {
+        "n_queries": 805,
+        "recall@1": 0.2994,
+        "recall@5": 0.359,
+        "recall@10": 0.4087,
+        "recall@20": 0.4484
+      },
+      "25m": {
+        "n_queries": 1080,
+        "recall@1": 0.3204,
+        "recall@5": 0.4537,
+        "recall@10": 0.5102,
+        "recall@20": 0.5491
       }
     }
   }

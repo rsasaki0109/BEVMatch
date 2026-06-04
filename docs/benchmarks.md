@@ -62,21 +62,39 @@ column-shift** distance rerank (the same design as Kim & Kim, *Scan Context*,
 IROS 2018). Velodyne scans, voxel-downsampled (0.5 m) with a ground filter;
 polar grid 20 rings × 60 sectors, 30 m range.
 
-Reproduce: `python scripts/benchmark_kitti_lidar.py`
-(needs the seq 00 velodyne scans — `scripts/_extract_velodyne_from_head.py`).
+Reproduce: `python scripts/benchmark_kitti_lidar.py` (all sequences) or
+`python scripts/benchmark_kitti_lidar.py 00 05` (a subset). Needs the velodyne
+scans — `scripts/_fetch_kitti_velodyne_seq00.py` (seq 00) /
+`scripts/_extract_velodyne_blocks.py` (seq 05–08).
 
-### KITTI seq 00 (4541 scans, 471 s)
+### Across the KITTI loop sequences (positive radius 5 m)
 
-| positive radius | queries | Recall@1 | Recall@5 | Recall@10 | Recall@20 |
-|---|---|---|---|---|---|
-| 5 m  | 1706 | **0.913** | 0.920 | 0.925 | 0.928 |
-| 10 m | 1838 | 0.850 | 0.861 | 0.872 | 0.878 |
-| 25 m | 2089 | 0.763 | 0.779 | 0.793 | 0.807 |
+| sequence | revisit queries | Recall@1 | Recall@5 | Recall@20 |
+|---|---|---|---|---|
+| 00 (forward loops)   | 1706 | **0.913** | 0.920 | 0.928 |
+| 05                   |  963 | 0.783 | 0.797 | 0.804 |
+| 06                   |  565 | 0.887 | 0.899 | 0.901 |
+| 07 (few revisits)    |   94 | 0.596 | 0.628 | 0.638 |
+| 08 (reverse loops)   |  616 | 0.339 | 0.385 | 0.433 |
+| **mean**             |   —  | **0.704** | 0.726 | 0.741 |
 
-*Context:* R@1 ≈ 0.91 at 5 m is in line with the Scan-Context baseline reported
-in the literature on KITTI — a faithful classical descriptor, no learning. As a
-plugin it can be swapped for a learned LiDAR descriptor (OverlapTransformer,
-LoGG3D-Net, …) without touching the rest of the pipeline.
+Full table (5/10/25 m radii, all K) is in
+[`docs/assets/kitti_lidar_results.json`](assets/kitti_lidar_results.json).
+
+*Reading these honestly:*
+- seq 00/06 (forward revisits) are where Scan-Context shines — R@1 ≈ 0.89–0.91,
+  in line with the published Scan-Context baseline.
+- seq 08 is dominated by **reverse-direction** revisits (the car drives back
+  the opposite way). This is a documented hard case for appearance/structure
+  descriptors and pulls R@1 down to 0.34 — we report it rather than hide it.
+- seq 07 has very few genuine revisits (94 queries), so its number is noisy.
+- The mean across sequences (R@1 = 0.70 @ 5 m) is the honest single figure.
+
+This is a **faithful classical baseline, no learning**, with a deliberately
+modest config (20×60 polar grid, 30 m range, default `ScanContextConfig`). The
+descriptor is a plugin: a learned LiDAR descriptor (OverlapTransformer,
+LoGG3D-Net, …) or a wider range / finer grid can be dropped in without touching
+the rest of the pipeline — these numbers are the floor, not the ceiling.
 
 ## Cross-modal — same place, same protocol, two sensors
 
@@ -88,6 +106,8 @@ is not representation*: one retrieval framework, two sensors, comparable recall.
 |---|---|---|---|---|
 | LiDAR  | Scan-Context (ring-key + SC rerank) | 0.913 | 0.920 | 0.928 |
 | Camera | ResNet-18 embedding (ImageNet)      | 0.923 | 0.942 | 0.954 |
+
+(seq 00; the LiDAR descriptor is also evaluated across 5 loop sequences above.)
 
 ## Notes on honesty
 
