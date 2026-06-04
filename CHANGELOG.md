@@ -3,6 +3,16 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.11.0 — Technical report
+
+- `docs/report.md`: an arXiv-style, citable consolidation of the three real-data
+  findings (representation helps within a modality; the reverse-view wall does not
+  fall to learning; geometry — not score — fuses the two), with abstract, numbered
+  sections, both result figures, honest limitations, a reproducibility block, and
+  references (KITTI, Scan-Context, EigenPlaces, RRF, ResNet, Lowe).
+- docs/findings.md retitled "Three findings" and linked to the report; README
+  links the report.
+
 ## 1.10.1 — Fusion result figure
 
 - `scripts/make_fusion_figure.py` + `docs/assets/bevmatch_fusion_summary.png`:

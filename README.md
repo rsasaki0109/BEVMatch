@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.10.1-informational" alt="v1.10.1">
+  <img src="https://img.shields.io/badge/version-1.11.0-informational" alt="v1.11.0">
 </p>
 
 <p align="center">
@@ -401,7 +401,8 @@ assert validate_artifact("comparison_evidence_bundle", bundle) == []
 
 ## Documentation
 
-- [Two findings](docs/findings.md) — ベンチから読み取れる2つの知見の技術ノート（①モダリティ内では表現の質が効く ②視点の壁は学習では破れずモダリティ多様性のみが解く）と正直な限界。
+- [Technical report](docs/report.md) — 3 Finding を arXiv 風にまとめた citable な技術レポート（abstract→設定→結果→考察→限界→再現性→参考文献、2図引用）。
+- [Two findings](docs/findings.md) — 同じ知見の読みやすい技術ノート（①表現の質は効く ②視点の壁は学習では破れない ③score 融合は負け幾何検証で両者超え）と正直な限界。
 - [Real-data benchmarks](docs/benchmarks.md) — KITTI odometry での実 Recall@K（LiDAR / camera）、プロトコル、合成 sanity との区別。
 - [Master Architecture Design Document](docs/architecture.md) — 全体設計、データモデル、plugin / pipeline 設計、評価、ROS2 / Autoware / Nav2 連携、ロードマップ。
 - [CONTRIBUTING](CONTRIBUTING.md) — plugin の追加方法、設計原則、benchmark 提出。
