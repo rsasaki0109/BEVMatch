@@ -8,9 +8,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/bevmatch_camera_bev.gif" alt="BEVMatch recognizing a place in a camera-derived bird's-eye view: stereo depth turns the camera into a BEV, then the current BEV is retrieved and aligned onto the matched map BEV" width="100%">
+  <img src="docs/assets/bevmatch_camera_bev_map.gif" alt="BEVMatch localizing a revisit in a large camera-derived BEV map: ~50 m of street accumulated from stereo depth, the revisit map snapped onto the first-visit map" width="100%">
 </p>
-<p align="center"><sub><b>Real data, actual pipeline output.</b> A revisit on KITTI seq 00: stereo depth turns the <b>camera</b> into a <b>bird's-eye view</b>, BEVMatch <b>retrieves</b> the matching first-visit place (score 0.98) and <b>aligns</b> the two camera BEVs (gold = matched map, cyan = current) — the same place, recognized in a camera BEV.</sub></p>
+<p align="center"><sub><b>Real data, actual pipeline output.</b> KITTI seq 00 closes a loop. ~45 stereo frames per visit are accumulated into a dense <b>camera</b> bird's-eye map (~10k points, ~50 m of street). BEVMatch presents the revisit at an unknown pose (cyan) and <b>SE2-aligns</b> it onto the first-visit map (gold) — <b>90% overlap</b>, the same place localized in a large camera BEV.</sub></p>
 
 <p align="center">
   <img src="docs/assets/bevmatch_hero.gif" alt="BEVMatch localizing a real LiDAR observation against a real 109M-point survey map: it retrieves the matching map tile and recovers the SE2 pose with covariance" width="100%">
