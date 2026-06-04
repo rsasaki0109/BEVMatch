@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.9.0-informational" alt="v1.9.0">
+  <img src="https://img.shields.io/badge/version-1.9.1-informational" alt="v1.9.1">
 </p>
 
 <p align="center">
