@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.1.0-informational" alt="v1.1.0">
+  <img src="https://img.shields.io/badge/version-1.2.0-informational" alt="v1.2.0">
 </p>
 
 <p align="center">
@@ -37,7 +37,30 @@ Query Scene
 **v1.1 — Stable platform + real data** 🎉 ロードマップ v0.1→v1.0 完了後、実データ対応を追加。
 安定化済みの **artifact schema**（`bevmatch.schema`）、**plugin manifest**（`bevmatch.plugins`, §7.3）、**benchmark protocol**、CI、再現可能 demo suite を備えます。上のヒーロー GIF は実 LiDAR 地図 / 実 KITTI 画像での実パイプライン出力です。
 
-retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2 → benchmark → multi-modal の全レイヤが動作（テスト 85 件全パス）。実 LiDAR（PCD/LAS/KITTI）ローダと、密点群でも OOM しない KD-tree alignment を搭載。コア依存は `numpy` のみ（任意で `scipy` / `matplotlib` / `faiss-cpu` / `rclpy` / `laspy` / `open3d`）。
+retrieval → alignment → change → map validation → ROS2 → Autoware/Nav2 → benchmark → multi-modal の全レイヤが動作（テスト 79 件全パス）。実 LiDAR（PCD/LAS/KITTI）ローダと、密点群でも OOM しない KD-tree alignment を搭載。コア依存は `numpy` のみ（任意で `scipy` / `matplotlib` / `faiss-cpu` / `rclpy` / `laspy` / `open3d`）。
+
+## Real-data benchmarks — KITTI odometry (place recognition)
+
+公開データセット **KITTI odometry seq 00** 上で、標準的な place-recognition プロトコル
+（positive = GT pose 距離 ≤ D かつ時間 30s 超離れ、時間近傍は検索から除外）で
+BEVMatch 自身の検索パイプラインの **Recall@K を実測**した結果です（合成データではありません）。
+同一シーケンス・同一プロトコルで **LiDAR と camera を比較**でき、Principle 2（modality ≠ representation）を実証します。
+
+| modality | descriptor | Recall@1 | Recall@5 | Recall@20 | queries |
+|---|---|---|---|---|---|
+| LiDAR  | Scan-Context (ring-key + SC rerank) | **0.913** | 0.920 | 0.928 | 1706 |
+| Camera | ResNet-18 embedding (ImageNet)      | **0.923** | 0.942 | 0.954 | 1706 |
+
+<sub>positive radius 5 m。R@1 ≈ 0.91（Scan-Context）は文献のベースライン水準。descriptor は
+プラグインなので、学習系（OverlapTransformer / NetVLAD 等）に差し替えれば上限はさらに伸びます。
+全距離閾値（5/10/25 m）の表・プロトコル詳細・正直な注記は [docs/benchmarks.md](docs/benchmarks.md)。</sub>
+
+```bash
+python scripts/benchmark_kitti_vpr.py     # camera VPR Recall@K
+python scripts/benchmark_kitti_lidar.py   # LiDAR Scan-Context Recall@K
+```
+
+> 注: 本 README 下部の合成データ表（満点が出るもの）は配線の sanity check であり、手法の性能評価ではありません。性能は本節と [docs/benchmarks.md](docs/benchmarks.md) で判断してください。
 
 ## Quickstart
 
@@ -202,6 +225,9 @@ python examples/run_benchmark_suite.py
 4 タスクを同一プロトコルで評価し、leaderboard を出力します。descriptor/aligner を
 追加して再実行すれば、比較可能なエントリが得られます（§20.5）。
 
+> ⚠️ **これは合成データの sanity check です**（手法の性能評価ではありません）。
+> 実データでの性能は [Real-data benchmarks](#real-data-benchmarks--kitti-odometry-place-recognition) / [docs/benchmarks.md](docs/benchmarks.md) を参照。
+
 ```text
 ### retrieval (ranked by recall@1)
 | rank | method       | recall@1 | recall@5 | mrr   |
@@ -311,6 +337,7 @@ assert validate_artifact("comparison_evidence_bundle", bundle) == []
 
 ## Documentation
 
+- [Real-data benchmarks](docs/benchmarks.md) — KITTI odometry での実 Recall@K（LiDAR / camera）、プロトコル、合成 sanity との区別。
 - [Master Architecture Design Document](docs/architecture.md) — 全体設計、データモデル、plugin / pipeline 設計、評価、ROS2 / Autoware / Nav2 連携、ロードマップ。
 - [CONTRIBUTING](CONTRIBUTING.md) — plugin の追加方法、設計原則、benchmark 提出。
 - [GOVERNANCE](GOVERNANCE.md) — ライセンス・バージョニング・リリース方針。

@@ -1,0 +1,32 @@
+[
+  {
+    "sequence": "00",
+    "frames": 4541,
+    "time_exclude_s": 30.0,
+    "descriptor": "CameraEmbeddingDescriptor (ResNet-18, ImageNet)",
+    "protocol": "Recall@K over revisits; positive = pose<=D & |dt|>T",
+    "by_distance": {
+      "5m": {
+        "n_queries": 1706,
+        "recall@1": 0.9226,
+        "recall@5": 0.942,
+        "recall@10": 0.9478,
+        "recall@20": 0.9537
+      },
+      "10m": {
+        "n_queries": 1838,
+        "recall@1": 0.8678,
+        "recall@5": 0.8885,
+        "recall@10": 0.8961,
+        "recall@20": 0.9048
+      },
+      "25m": {
+        "n_queries": 2089,
+        "recall@1": 0.7889,
+        "recall@5": 0.8248,
+        "recall@10": 0.843,
+        "recall@20": 0.8688
+      }
+    }
+  }
+]
