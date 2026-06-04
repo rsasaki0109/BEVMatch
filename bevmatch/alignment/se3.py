@@ -17,6 +17,7 @@ from bevmatch.alignment.failure import classify_alignment_failure
 from bevmatch.alignment.se2 import SE2AlignConfig, align_se2, bev_overlap
 from bevmatch.core.datamodel import AlignmentHypothesis, PoseSE3, Scene
 from bevmatch.representations.bev import BEVConfig
+from bevmatch.spatial import nearest_neighbors
 
 
 @dataclass(frozen=True)
@@ -48,9 +49,7 @@ def _icp_se3(query: np.ndarray, ref: np.ndarray, init: PoseSE3, cfg: SE3AlignCon
     nn_keep = None
     for i in range(cfg.icp_iters):
         moved = pose.transform(query)
-        d2 = ((moved[:, None, :] - ref[None, :, :]) ** 2).sum(axis=2)
-        nn = np.argmin(d2, axis=1)
-        dist = np.sqrt(d2[np.arange(len(moved)), nn])
+        dist, nn = nearest_neighbors(moved, ref)
         gate = max(cfg.icp_max_dist_m * (1.0 - 0.6 * i / max(1, cfg.icp_iters)), 0.4)
         keep = dist < gate
         inlier_ratio = float(keep.mean())
