@@ -23,7 +23,10 @@ dev = ["pytest>=7.0", "scipy>=1.9"]
 # (e.g. ROS2 Jazzy), not pip. The pure-Python bevmatch.ros bridge needs nothing.
 
 [project.urls]
-Documentation = "https://github.com/your-org/BEVMatch/blob/main/docs/architecture.md"
+Homepage = "https://github.com/rsasaki0109/BEVMatch"
+Repository = "https://github.com/rsasaki0109/BEVMatch"
+Documentation = "https://github.com/rsasaki0109/BEVMatch/blob/main/docs/architecture.md"
+Findings = "https://github.com/rsasaki0109/BEVMatch/blob/main/docs/findings.md"
 
 [tool.setuptools.packages.find]
 include = ["bevmatch*"]
