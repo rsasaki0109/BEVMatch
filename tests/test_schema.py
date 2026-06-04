@@ -17,8 +17,8 @@ from bevmatch.schema import (
 
 
 def test_versions():
-    assert __version__ == "1.0.0"
-    assert ARTIFACT_SCHEMA_VERSION == "1.0"
+    assert __version__.startswith("1.")  # package version (>= 1.0)
+    assert ARTIFACT_SCHEMA_VERSION == "1.0"  # artifact schema is the stable contract
 
 
 def test_is_compatible_major():
