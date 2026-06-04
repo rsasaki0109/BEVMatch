@@ -1,10 +1,10 @@
 # Same-place retrieval across modalities: representation helps, viewpoint walls don't fall to learning, and geometry — not score — fuses
 
-**A technical report on the BEVMatch real-data benchmarks (KITTI odometry).**
+**A technical report on the BEVMatch real-data benchmarks (KITTI odometry + NCLT).**
 
-> All numbers are measured by BEVMatch's own retrieval pipeline on public KITTI
-> data, one standard protocol, no ground truth at inference, fully reproducible
-> from `scripts/`. This report consolidates the three findings; the conversational
+> All numbers are measured by BEVMatch's own retrieval pipeline on public KITTI and
+> NCLT data, one standard protocol, no ground truth at inference, fully reproducible
+> from `scripts/`. This report consolidates the five findings; the conversational
 > version is [findings.md](findings.md), the full tables are in
 > [benchmarks.md](benchmarks.md).
 
@@ -31,7 +31,10 @@ reverse loop (0.343 ≈ LiDAR's 0.339). The arc validates a retrieve → align �
 evidence design over retrieval score alone. **(4)** On a wholly different dataset
 (NCLT — different city, robot and 32-beam sensor) the LiDAR retrieval generalises
 (R@1 = 0.62 with the right config) and the config-tuning lesson transfers from
-KITTI unchanged.
+KITTI unchanged. **(5)** Across sessions 209 days apart — a winter map queried by a
+summer drive — the LiDAR retrieval still localises at R@1 @ 5 m = 0.68, only 0.16
+below the same-day baseline: appearance-blind range geometry survives a full change
+of season where a camera descriptor would not, the long-term mirror image of (2).
 
 ## 1. Problem and setup
 
@@ -181,26 +184,59 @@ reverse loops (0.34 → 0.77) nearly doubles NCLT recall (0.358 → 0.620), sinc
 larger, more open campus needs the longer 80 m range. The method generalises, and
 so does the knowledge of how to tune it.
 
-## 6. Discussion
+## 6. Finding 5 — the map survives the seasons (cross-session, 209 days)
 
-The four findings compose into one statement: **better representations help where
-the view is shared, cannot manufacture an unobserved view, and the right way to
-combine sensors that fail differently is to verify a match geometrically rather
-than to combine retrieval scores.** This is exactly a retrieve → align → evidence
-architecture: retrieval proposes, geometry verifies, and the per-modality
-geometric evidence — not the descriptor score — decides what to trust. On real
-data, that architecture turns two individually-limited sensors into a retriever
-that beats both.
+§5 is still within one session. The long-term test NCLT exists for is whether a map
+built on one day localises a drive made months later. We build the reference from
+**2012-01-08 (winter)** and query it with **2012-08-04 (summer)**, 209 days and a full
+change of season later. NCLT's ground truth shares one campus frame across days, so a
+summer frame is a true revisit of a winter frame iff their poses are within *D* m, with
+no temporal exclusion (different days). The same `velodyne_sync` loader and descriptor
+run a same-day baseline for control (`scripts/benchmark_nclt_cross_session.py`).
 
-## 7. Limitations
+| R@1 | within-session (same day) | cross-session (209 days) |
+|---|---|---|
+| wide @ 5 m | 0.840 | **0.678** |
+| wide @ 10 m | 0.721 | 0.682 |
+| wide @ 25 m | 0.541 | 0.666 |
+| default @ 5 m | 0.645 | 0.634 |
+
+A winter map localises a summer traverse at **R@1 @ 5 m = 0.68**, only **0.16 below**
+the same-day baseline — seven months cost about a sixth of the recall, and the system
+degrades gracefully rather than collapsing. This is the long-term mirror of Finding 2:
+Scan-Context reads range geometry, which the seasons barely move, so the modality that
+*lost* the viewpoint battle *wins* the long-term one — a camera appearance descriptor
+would be hammered by the foliage/snow/light change. The config lesson transfers a third
+time (wide 0.678 > default 0.634). Two honest caveats: past 5 m the cross-session number
+exceeds the same-day baseline (0.666 vs 0.541 @ 25 m) because the same-day baseline's
+30 s exclusion leaves geometrically-distant positives that thin with *D* while the
+cross-session positives are dense road overlap — so the 5 m column is the like-for-like
+read; and this sync-loader baseline (0.840) exceeds §5's hit-stream one (0.620) because
+the official synchronised product is cleaner than our hand-rolled accumulation, so the
+fair comparison is cross-vs-within on the same loader.
+
+## 7. Discussion
+
+The five findings compose into one statement: **better representations help where
+the view is shared, cannot manufacture an unobserved view, the right way to combine
+sensors that fail differently is to verify a match geometrically rather than to
+combine retrieval scores, and appearance-blind LiDAR geometry both transfers across
+datasets and survives across seasons.** This is exactly a retrieve → align → evidence
+architecture: retrieval proposes, geometry verifies, and the per-modality geometric
+evidence — not the descriptor score — decides what to trust. On real data, that
+architecture turns two individually-limited sensors into a retriever that beats both,
+and a LiDAR map that holds up months later.
+
+## 8. Limitations
 
 - **Grayscale camera.** KITTI `image_0` (grayscale → 3 channels); EigenPlaces
   trained on RGB. Forward camera numbers would likely rise with colour `image_2`;
   this does not affect Finding 2 (the reverse collapse is geometric) or Finding 3.
-- **Cross-dataset is LiDAR-only.** §5 validates the LiDAR retrieval on NCLT; the
-  camera/fusion findings (2, 3) were not re-run there (NCLT's camera is a 360°
-  Ladybug, not a forward monocular). NCLT is one session with intra-session
-  revisits; the long-term cross-session case (different days/seasons) is left open.
+- **Cross-dataset/-session work is LiDAR-only.** §5–6 validate the LiDAR retrieval on
+  NCLT (within-session and across 209 days); the camera/fusion findings (2, 3) were
+  not re-run there (NCLT's camera is a 360° Ladybug, not a forward monocular). §6 is a
+  single winter→summer pair; a sweep over more seasons and longer gaps (a year+) is the
+  natural next step.
 - **seq 07 is small** (94 revisit queries) — its absolute number is noisy.
 - **Geometric verification uses a Scan-Context proxy**, not a full SE(3) ICP
   residual with inlier counts. We tested the full SE2 aligner as the verifier
@@ -212,7 +248,7 @@ that beats both.
   within 0.762–0.784 and beats every single-modality and score-fusion number
   throughout; the default α = 1.3 (0.779) sits on the plateau.
 
-## 8. Reproducibility
+## 9. Reproducibility
 
 ```bash
 python scripts/benchmark_kitti_lidar.py            # LiDAR Scan-Context
@@ -220,9 +256,11 @@ python scripts/benchmark_kitti_vpr.py              # camera ResNet-18 baseline
 python scripts/benchmark_kitti_vpr_learned.py      # camera EigenPlaces (MIT, torch.hub)
 python scripts/experiment_scancontext_config.py    # LiDAR default-vs-wide (seq 00/08)
 python scripts/benchmark_kitti_fusion.py           # RRF / confidence-gate / geo-verified
-python scripts/benchmark_nclt_lidar.py [--wide]    # cross-dataset (NCLT HDL-32E)
+python scripts/benchmark_nclt_lidar.py [--wide]    # cross-dataset, NCLT within-session
+python scripts/benchmark_nclt_cross_session.py [--wide]  # cross-session, winter->summer
 python scripts/make_results_summary.py             # Findings 1-2 figure
 python scripts/make_fusion_figure.py               # Finding 3 figure
+python scripts/make_cross_session_figure.py        # Finding 5 figure
 ```
 
 Scan-Context is BEVMatch's own implementation; EigenPlaces is loaded at runtime

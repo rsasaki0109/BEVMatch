@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.13.0-informational" alt="v1.13.0">
+  <img src="https://img.shields.io/badge/version-1.14.0-informational" alt="v1.14.0">
 </p>
 
 <p align="center">
@@ -132,6 +132,18 @@ python scripts/benchmark_kitti_fusion.py         # LiDAR + camera late fusion (R
 | **wide (40×120, 80m)** | **0.620** | 1664 |
 
 <sub>NCLT の packed `velodyne_hits.bin` を 10Hz 回転にパースし（3716 scans, 94分, 420×791m campus）KITTI と同じ手法で評価。**同一コードが別都市/別ロボット/別センサで revisit の 62% を top-1 で回収＝汎化**（KITTI 最良 0.97 より低いのは 32 ビームの疎さ＋campus の難しさで一貫）。さらに **KITTI seq08 を救った wide config が NCLT でも recall をほぼ倍増**（0.358→0.620）＝ config 知見も転移。再現: `python scripts/benchmark_nclt_lidar.py [--wide]`、詳細は [docs/findings.md](docs/findings.md) Finding 4。</sub>
+
+**さらに長期: 冬の地図は夏まで生き残る**（NCLT cross-session — 地図 **2012-01-08(冬)** ↔ query **2012-08-04(夏)**, **209日差・全季節変化**, R@1）:
+
+| config | radius | 同日 within | **cross-session(209日)** |
+|---|---|---|---|
+| **wide** (40×120,80m) | 5 m | 0.840 | **0.678** |
+| wide | 10 m | 0.721 | 0.682 |
+| default (20×60,30m) | 5 m | 0.645 | 0.634 |
+
+![NCLT cross-session](docs/assets/bevmatch_cross_session_summary.png)
+
+<sub>NCLT のグローバル座標は日付間で共通なのでポーズを直接比較でき、夏フレームが冬フレームの真の revisit かを判定できる（別日なので temporal exclusion 不要）。**冬の地図が7ヶ月後の夏の走行を R@1@5m=0.68 で測位＝同日 baseline 0.84 から −0.16 のみ**、崩壊せず graceful に劣化。LiDAR の Scan-Context は range 幾何しか見ず季節でほぼ動かないので、視点の戦い（Finding 2）で**負けた**モダリティが長期戦で**勝つ**——カメラの appearance descriptor なら葉・雪・光で大崩れする。wide>default は cross-session でも成立（config 知見の3度目の転移）。再現: `python scripts/benchmark_nclt_cross_session.py [--wide]`、詳細は [docs/findings.md](docs/findings.md) Finding 5。</sub>
 
 > 注: 本 README 下部の合成データ表（満点が出るもの）は配線の sanity check であり、手法の性能評価ではありません。性能は本節と [docs/benchmarks.md](docs/benchmarks.md) で判断してください。
 
@@ -411,7 +423,7 @@ assert validate_artifact("comparison_evidence_bundle", bundle) == []
 ## Documentation
 
 - [Technical report](docs/report.md) — 4 Finding を arXiv 風にまとめた citable な技術レポート（abstract→設定→結果→考察→限界→再現性→参考文献、2図引用）。
-- [Four findings](docs/findings.md) — 同じ知見の読みやすい技術ノート（①表現の質は効く ②視点の壁は学習では破れない ③score 融合は負け幾何検証で両者超え ④LiDAR 検索は別データセット NCLT でも汎化）と正直な限界。
+- [Five findings](docs/findings.md) — 同じ知見の読みやすい技術ノート（①表現の質は効く ②視点の壁は学習では破れない ③score 融合は負け幾何検証で両者超え ④LiDAR 検索は別データセット NCLT でも汎化 ⑤冬の地図は209日後の夏でも生き残る）と正直な限界。
 - [Real-data benchmarks](docs/benchmarks.md) — KITTI odometry での実 Recall@K（LiDAR / camera）、プロトコル、合成 sanity との区別。
 - [Master Architecture Design Document](docs/architecture.md) — 全体設計、データモデル、plugin / pipeline 設計、評価、ROS2 / Autoware / Nav2 連携、ロードマップ。
 - [CONTRIBUTING](CONTRIBUTING.md) — plugin の追加方法、設計原則、benchmark 提出。

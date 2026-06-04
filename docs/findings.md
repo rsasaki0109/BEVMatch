@@ -1,8 +1,9 @@
-# Four findings from the BEVMatch benchmarks
+# Five findings from the BEVMatch benchmarks
 
 A short, honest technical note. Everything here is measured on **public KITTI
-odometry** data by BEVMatch's own retrieval pipeline, on one standard
-place-recognition protocol, and is reproducible from `scripts/`. Numbers and the
+odometry** data (and, for Findings 4–5, **NCLT**) by BEVMatch's own retrieval
+pipeline, on one standard place-recognition protocol, and is reproducible from
+`scripts/`. Numbers and the
 exact protocol live in [benchmarks.md](benchmarks.md); the formal, citable
 write-up with references is [report.md](report.md); this note is about what they
 *mean*.
@@ -168,6 +169,50 @@ loops (0.34 → 0.77) nearly doubles NCLT recall (0.358 → 0.620), because NCLT
 larger, open campus needs the longer 80 m range. The method generalises, and so
 does the knowledge of how to tune it.
 
+## Finding 5 — the map survives the seasons (cross-session, 209 days apart)
+
+Finding 4's NCLT run is still *within one session*: the map and the queries are the
+same afternoon's drive. The real long-term question — the one the "Long-Term" in
+NCLT's name is for — is whether a map built on one day still localises a drive made
+months later, after the campus has changed season. So we build the reference map
+from **2012-01-08 (winter)** and query it with **2012-08-04 (summer)** — 209 days and
+a full change of foliage, light and construction later. NCLT's ground truth is
+geo-referenced to one campus frame shared across days, so a summer frame is a true
+revisit of a winter frame iff their poses are within *D* m; there is no temporal
+exclusion (the two drives are different days). The *same* sync loader and descriptor
+also run a same-day baseline (2012-01-08 vs itself, `scripts/benchmark_nclt_cross_session.py`).
+
+| | within-session (same day) | cross-session (209 days) |
+|---|---|---|
+| wide, R@1 @ 5 m | 0.840 | **0.678** |
+| wide, R@1 @ 10 m | 0.721 | 0.682 |
+| wide, R@1 @ 25 m | 0.541 | 0.666 |
+| default, R@1 @ 5 m | 0.645 | 0.634 |
+
+![NCLT cross-session](assets/bevmatch_cross_session_summary.png)
+
+**The map survives.** A winter map localises a summer traverse at **R@1 @ 5 m =
+0.68** — only **0.16 below** the same-day baseline (0.84). Seven months and a full
+season cost about a sixth of the recall; the system degrades gracefully, it does not
+collapse. This is the LiDAR mirror image of Finding 2: a camera's appearance
+descriptor would be hammered by the seasonal change (different foliage, snow, light),
+whereas Scan-Context reads only range geometry, which the seasons barely move — so
+the modality that *lost* the viewpoint battle (Finding 2) *wins* the long-term one.
+**And the config lesson transfers a third time**: wide (0.678) again beats default
+(0.634), as on KITTI's reverse loops and NCLT within-session.
+
+Two honest caveats. (i) Past 5 m the cross-session number actually *exceeds* the
+same-day baseline (e.g. 0.666 vs 0.541 @ 25 m) — not because cross-session is
+*easier*, but because the same-day baseline excludes a 30 s window and so its
+positives are geometrically-distant true loop closures that thin out as *D* grows,
+while the cross-session positives are dense overlap between two traverses of the same
+roads; the two query sets are not identical, so read the tight 5 m column as the
+honest like-for-like. (ii) This within-session baseline (sync loader, 0.840) is
+higher than Finding 4's (hit-stream, 0.620): the official `velodyne_sync` product is
+cleaner than our hand-rolled hit-stream accumulation, which is why we use it here —
+the fair comparison is cross-vs-within *within this experiment*, both on the same
+loader.
+
 ## Honest limitations
 
 - **Grayscale camera.** We use KITTI `image_0` (grayscale, replicated to 3
@@ -175,11 +220,12 @@ does the knowledge of how to tune it.
   likely be somewhat higher with color `image_2`. This does **not** affect
   Finding 2 — the reverse-loop collapse is geometric, not photometric, and color
   cannot manufacture an unobserved view.
-- **Cross-dataset is LiDAR-only and single-session.** Finding 4 validates the
-  *LiDAR* retrieval on NCLT, but the camera/fusion findings (2, 3) were not re-run
-  there (NCLT's camera is a 360° Ladybug, not a forward monocular, so the
-  reverse-view geometry differs). NCLT is one session with intra-session revisits;
-  the harder long-term cross-session case (different days/seasons) is left open.
+- **Cross-dataset/-session work is LiDAR-only.** Findings 4–5 validate the *LiDAR*
+  retrieval on NCLT (within-session and across 209 days), but the camera/fusion
+  findings (2, 3) were not re-run there (NCLT's camera is a 360° Ladybug, not a
+  forward monocular, so the reverse-view geometry differs). Finding 5 uses a single
+  winter→summer pair; a sweep over more seasons and longer gaps (a full year+) is the
+  natural next step.
 - **seq 07 is small.** 94 revisit queries; treat its absolute number as noisy
   (the *direction* of the EigenPlaces improvement is still clear).
 - **A "stronger" geometric verifier needs calibration; the relative proxy does
@@ -215,6 +261,8 @@ python scripts/benchmark_kitti_vpr.py              # Camera ResNet-18 baseline
 python scripts/benchmark_kitti_vpr_learned.py      # Camera EigenPlaces (MIT, torch.hub)
 python scripts/experiment_scancontext_config.py    # LiDAR default-vs-wide on seq 00/08
 python scripts/benchmark_kitti_fusion.py           # LiDAR+camera late fusion (RRF, gated)
+python scripts/benchmark_nclt_lidar.py [--wide]    # NCLT within-session (Finding 4)
+python scripts/benchmark_nclt_cross_session.py [--wide]  # NCLT winter→summer (Finding 5)
 python scripts/make_results_summary.py             # the summary figure
 ```
 

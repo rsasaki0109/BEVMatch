@@ -272,6 +272,41 @@ and run the KITTI protocol unchanged (`python scripts/benchmark_nclt_lidar.py`).
   The default's low number was largely a config mismatch, not a method failure —
   the same lesson, on new data.
 
+## Cross-session — does the LiDAR map survive months and a change of season?
+
+The section above is still one session (map and queries are the same drive). The
+long-term test is to build the map on one day and query it months later. We map
+**2012-01-08 (winter)** and query with **2012-08-04 (summer)** — 209 days apart. NCLT's
+ground truth shares one campus frame across days, so poses compare directly between
+sessions and a summer frame is a true revisit of a winter frame iff within *D* m (no
+temporal exclusion — different days). The same `velodyne_sync` loader runs a same-day
+baseline for control (`python scripts/benchmark_nclt_cross_session.py [--wide]`).
+
+| config | radius | within-session R@1 | cross-session R@1 | within q / cross q |
+|---|---|---|---|---|
+| **wide** (40×120, 80 m) | 5 m | 0.840 | **0.678** | 846 / 1381 |
+| wide | 10 m | 0.721 | 0.682 | 1082 / 1451 |
+| wide | 25 m | 0.541 | 0.666 | 1540 / 1523 |
+| default (20×60, 30 m) | 5 m | 0.645 | 0.634 | 846 / 1381 |
+
+![NCLT cross-session](assets/bevmatch_cross_session_summary.png)
+
+*Reading these honestly:*
+- **The map survives the seasons.** A winter map localises a summer drive at R@1 @ 5 m
+  = 0.68, only 0.16 below the same-day baseline. Appearance-blind range geometry barely
+  notices foliage/snow/light — the long-term mirror of the reverse-loop result (a camera
+  appearance descriptor would degrade far more across seasons).
+- **The wide config wins a third time** (0.678 > 0.634 @ 5 m), as on KITTI reverse loops
+  and NCLT within-session.
+- Past 5 m the cross-session number *exceeds* the same-day baseline (0.666 vs 0.541 @
+  25 m) — not because it is easier, but because the same-day baseline's 30 s exclusion
+  leaves geometrically-distant positives that thin as *D* grows, while cross-session
+  positives are dense overlap between two drives of the same roads. The 5 m column is the
+  honest like-for-like.
+- The within-session baseline here (sync loader, 0.840) is higher than the hit-stream one
+  above (0.620): the official `velodyne_sync` product is cleaner than our hand-rolled
+  hit-stream accumulation. The fair comparison is cross-vs-within on the *same* loader.
+
 ## Notes on honesty
 
 - The synthetic demo tables (`examples/run_*_eval.py`, some README snippets)
