@@ -8,9 +8,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/bevmatch_crossmodal.gif" alt="On reverse-direction revisits the camera retrieves the wrong place while LiDAR retrieves the right one" width="92%">
+  <img src="docs/assets/bevmatch_hero.gif" alt="BEVMatch localizing a real LiDAR observation against a real 109M-point survey map: it retrieves the matching map tile and recovers the SE2 pose with covariance" width="100%">
 </p>
-<p align="center"><sub><b>Real KITTI seq 08, reverse-direction revisits.</b> The forward camera retrieves the wrong place (red ✗); the 360° rotation-invariant LiDAR retrieves the true revisit (green ✓). Same query, same database, opposite outcomes — <a href="docs/benchmarks.md">measured, not staged</a>.</sub></p>
+<p align="center"><sub><b>Real data, actual pipeline output.</b> A LiDAR observation is localized against a real 109M-point survey map — BEVMatch <b>retrieves</b> the matching place tile (score 0.98), <b>aligns</b> it, and recovers the <b>SE2 pose + covariance</b> as an initial pose for Autoware / Nav2.</sub></p>
 
 > **BEVMatch is not another place-recognition method.**
 > It is an OSS pipeline for **finding the same place, aligning it, comparing it, and turning the differences into map-validation evidence** — across LiDAR, camera, and radar.
@@ -38,6 +38,11 @@ All numbers are **measured** with one place-recognition protocol (positive = GT 
 | seq 08 (reverse) | ResNet-18 | EigenPlaces | LiDAR default | LiDAR wide |
 |---|---|---|---|---|
 | R@1 @ 5 m | 0.015 | 0.015 | 0.339 | **0.765** |
+
+<p align="center">
+  <img src="docs/assets/bevmatch_crossmodal.gif" alt="On reverse-direction revisits the camera retrieves the wrong place while LiDAR retrieves the right one" width="88%">
+</p>
+<p align="center"><sub>Same query, same database, opposite outcomes: the forward camera retrieves a place hundreds of metres away (red ✗); the 360° LiDAR (BEV) retrieves the true revisit (green ✓).</sub></p>
 
 **3 — Score fusion loses; geometric verification wins.** Naive late fusion is a net loss (the blind modality drags the good one down). Verifying the camera's pick with LiDAR geometry beats *both* single modalities (mean R@1 **0.779**) and fully recovers seq 08.
 
