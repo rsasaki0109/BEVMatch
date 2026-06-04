@@ -1,0 +1,38 @@
+{
+  "dataset": "NCLT",
+  "session": "2012-01-08",
+  "scans": 3716,
+  "sensor": "Velodyne HDL-32E",
+  "keep_every": 15,
+  "config_name": "wide",
+  "descriptor": "ScanContextDescriptor (ring-key prefilter + SC rerank)",
+  "config": {
+    "n_rings": 40,
+    "n_sectors": 120,
+    "max_range_m": 80.0,
+    "voxel_m": 0.5
+  },
+  "by_distance": {
+    "5m": {
+      "n_queries": 1664,
+      "recall@1": 0.6196,
+      "recall@5": 0.6707,
+      "recall@10": 0.6779,
+      "recall@20": 0.6845
+    },
+    "10m": {
+      "n_queries": 2126,
+      "recall@1": 0.564,
+      "recall@5": 0.6209,
+      "recall@10": 0.6345,
+      "recall@20": 0.6515
+    },
+    "25m": {
+      "n_queries": 3056,
+      "recall@1": 0.4192,
+      "recall@5": 0.4971,
+      "recall@10": 0.5308,
+      "recall@20": 0.5753
+    }
+  }
+}

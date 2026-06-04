@@ -1,4 +1,4 @@
-# Three findings from the BEVMatch benchmarks
+# Four findings from the BEVMatch benchmarks
 
 A short, honest technical note. Everything here is measured on **public KITTI
 odometry** data by BEVMatch's own retrieval pipeline, on one standard
@@ -146,6 +146,28 @@ per-modality geometry/evidence (retrieve → align → evidence) rather than sto
 at a retrieval score — and here that architecture, on real data, turns two
 complementary-but-individually-limited sensors into a retriever that beats both.
 
+## Finding 4 — the LiDAR retrieval generalises beyond KITTI (and so does the config lesson)
+
+Everything above is KITTI. To check it is not KITTI-overfit, we run the *same*
+Scan-Context code and protocol on **NCLT** (Michigan North Campus Long-Term) — a
+different city, a Segway platform, and a **different sensor (Velodyne HDL-32E, 32
+beams vs KITTI's 64)** — parsing NCLT's packed `velodyne_hits.bin` into 10 Hz
+revolutions (3716 scans, a 94-minute campus route; `scripts/benchmark_nclt_lidar.py`).
+
+| config | NCLT R@1 @ 5 m | (queries) |
+|---|---|---|
+| default (20×60, 30 m) | 0.358 | 1664 |
+| **wide (40×120, 80 m)** | **0.620** | 1664 |
+
+Two things hold. **(a) It generalises** — the same code recovers 62 % of revisits
+at top-1 on a wholly different dataset, well above chance, though below KITTI's
+best (seq 00 wide 0.966): the 32-beam sensor is half KITTI's density and a
+vegetated campus is a harder target, both expected. **(b) The config lesson from
+Finding 2 transfers** — the *same* "wide" descriptor that rescued KITTI's reverse
+loops (0.34 → 0.77) nearly doubles NCLT recall (0.358 → 0.620), because NCLT's
+larger, open campus needs the longer 80 m range. The method generalises, and so
+does the knowledge of how to tune it.
+
 ## Honest limitations
 
 - **Grayscale camera.** We use KITTI `image_0` (grayscale, replicated to 3
@@ -153,8 +175,11 @@ complementary-but-individually-limited sensors into a retriever that beats both.
   likely be somewhat higher with color `image_2`. This does **not** affect
   Finding 2 — the reverse-loop collapse is geometric, not photometric, and color
   cannot manufacture an unobserved view.
-- **One dataset.** KITTI only, urban driving. The findings are consistent across
-  its five loop sequences, but cross-dataset generalisation is untested here.
+- **Cross-dataset is LiDAR-only and single-session.** Finding 4 validates the
+  *LiDAR* retrieval on NCLT, but the camera/fusion findings (2, 3) were not re-run
+  there (NCLT's camera is a 360° Ladybug, not a forward monocular, so the
+  reverse-view geometry differs). NCLT is one session with intra-session revisits;
+  the harder long-term cross-session case (different days/seasons) is left open.
 - **seq 07 is small.** 94 revisit queries; treat its absolute number as noisy
   (the *direction* of the EigenPlaces improvement is still clear).
 - **A "stronger" geometric verifier needs calibration; the relative proxy does

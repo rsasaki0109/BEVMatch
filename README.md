@@ -4,7 +4,7 @@
   <a href="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml"><img src="https://github.com/rsasaki0109/BEVMatch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-Apache--2.0-green" alt="Apache-2.0">
-  <img src="https://img.shields.io/badge/version-1.12.1-informational" alt="v1.12.1">
+  <img src="https://img.shields.io/badge/version-1.13.0-informational" alt="v1.13.0">
 </p>
 
 <p align="center">
@@ -123,6 +123,15 @@ python scripts/benchmark_kitti_vpr_learned.py    # camera VPR (EigenPlaces, lear
 python scripts/benchmark_kitti_lidar.py          # LiDAR Scan-Context, all loop sequences
 python scripts/benchmark_kitti_fusion.py         # LiDAR + camera late fusion (RRF, confidence-gated)
 ```
+
+**そして KITTI 越え: LiDAR 検索は別データセットでも汎化する**（**NCLT** — 別都市・Segway・**別センサ HDL-32E(32ビーム)**、同一コード・同一プロトコル, R@1 @ 5 m）:
+
+| config | NCLT R@1 | revisit queries |
+|---|---|---|
+| default (20×60, 30m) | 0.358 | 1664 |
+| **wide (40×120, 80m)** | **0.620** | 1664 |
+
+<sub>NCLT の packed `velodyne_hits.bin` を 10Hz 回転にパースし（3716 scans, 94分, 420×791m campus）KITTI と同じ手法で評価。**同一コードが別都市/別ロボット/別センサで revisit の 62% を top-1 で回収＝汎化**（KITTI 最良 0.97 より低いのは 32 ビームの疎さ＋campus の難しさで一貫）。さらに **KITTI seq08 を救った wide config が NCLT でも recall をほぼ倍増**（0.358→0.620）＝ config 知見も転移。再現: `python scripts/benchmark_nclt_lidar.py [--wide]`、詳細は [docs/findings.md](docs/findings.md) Finding 4。</sub>
 
 > 注: 本 README 下部の合成データ表（満点が出るもの）は配線の sanity check であり、手法の性能評価ではありません。性能は本節と [docs/benchmarks.md](docs/benchmarks.md) で判断してください。
 
@@ -401,8 +410,8 @@ assert validate_artifact("comparison_evidence_bundle", bundle) == []
 
 ## Documentation
 
-- [Technical report](docs/report.md) — 3 Finding を arXiv 風にまとめた citable な技術レポート（abstract→設定→結果→考察→限界→再現性→参考文献、2図引用）。
-- [Two findings](docs/findings.md) — 同じ知見の読みやすい技術ノート（①表現の質は効く ②視点の壁は学習では破れない ③score 融合は負け幾何検証で両者超え）と正直な限界。
+- [Technical report](docs/report.md) — 4 Finding を arXiv 風にまとめた citable な技術レポート（abstract→設定→結果→考察→限界→再現性→参考文献、2図引用）。
+- [Four findings](docs/findings.md) — 同じ知見の読みやすい技術ノート（①表現の質は効く ②視点の壁は学習では破れない ③score 融合は負け幾何検証で両者超え ④LiDAR 検索は別データセット NCLT でも汎化）と正直な限界。
 - [Real-data benchmarks](docs/benchmarks.md) — KITTI odometry での実 Recall@K（LiDAR / camera）、プロトコル、合成 sanity との区別。
 - [Master Architecture Design Document](docs/architecture.md) — 全体設計、データモデル、plugin / pipeline 設計、評価、ROS2 / Autoware / Nav2 連携、ロードマップ。
 - [CONTRIBUTING](CONTRIBUTING.md) — plugin の追加方法、設計原則、benchmark 提出。
