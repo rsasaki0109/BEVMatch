@@ -3,6 +3,23 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.13.0 — Cross-dataset generalisation on NCLT (Finding 4)
+
+- `scripts/benchmark_nclt_lidar.py`: runs the *same* Scan-Context LiDAR retrieval
+  and protocol on **NCLT** (Michigan North Campus Long-Term) — a different city,
+  Segway platform and **different sensor (Velodyne HDL-32E, 32 beams vs KITTI's
+  64)**. Includes a from-scratch parser for NCLT's packed `velodyne_hits.bin`
+  hit-stream (accumulates partial packets into 10 Hz revolutions) + ground-truth
+  time-sync, a scan cache, and default/wide config selection.
+- **Finding 4:** the retrieval **generalises** — same code, R@1 @ 5 m = 0.620 on
+  3716 scans / 1664 revisit queries of a 94-minute campus route — below KITTI's
+  best (seq 00 wide 0.966), consistent with a half-density 32-beam sensor and a
+  vegetated campus. And the **config lesson transfers**: the same "wide"
+  descriptor that rescued KITTI seq 08 (0.34 → 0.77) nearly doubles NCLT recall
+  (default 0.358 → wide 0.620) — the larger campus needs the longer 80 m range.
+- docs/findings.md (now "Four findings"), docs/report.md (§5 + NCLT reference),
+  docs/benchmarks.md (Cross-dataset section), README: NCLT table and takeaway.
+
 ## 1.12.1 — Overlap-threshold sweep refines the verifier claim (a second correction)
 
 - `scripts/experiment_icp_verification.py`: sweeps the full-ICP verifier's overlap

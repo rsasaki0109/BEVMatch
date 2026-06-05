@@ -28,7 +28,10 @@ from "confidently right"; but fusing on **geometric verification** — accept th
 camera's proposed place only when its LiDAR geometry aligns — wins on every
 sequence (mean R@1 0.779, +0.07 over either modality) and fully recovers the blind
 reverse loop (0.343 ≈ LiDAR's 0.339). The arc validates a retrieve → align →
-evidence design over retrieval score alone.
+evidence design over retrieval score alone. **(4)** On a wholly different dataset
+(NCLT — different city, robot and 32-beam sensor) the LiDAR retrieval generalises
+(R@1 = 0.62 with the right config) and the config-tuning lesson transfers from
+KITTI unchanged.
 
 ## 1. Problem and setup
 
@@ -157,9 +160,30 @@ because it references LiDAR's *own best for that query*. So a tuned absolute
 verifier is competitive; the relative one is simply tuning-free — and on the blind
 case still marginally ahead (0.343 vs the best single-τ 0.320).
 
-## 5. Discussion
+## 5. Finding 4 — the LiDAR retrieval generalises beyond KITTI
 
-The three findings compose into one statement: **better representations help where
+To check the results are not KITTI-overfit, we run the *same* Scan-Context code and
+protocol on **NCLT** [7] — a different city, a Segway platform, and a different
+sensor (Velodyne HDL-32E, 32 beams vs KITTI's 64). NCLT ships a packed
+`velodyne_hits.bin` hit-stream, which we parse into 10 Hz revolutions (3716 scans
+over a 94-minute, 420 × 791 m campus route) and benchmark unchanged.
+
+| config | NCLT R@1 @ 5 m | revisit queries |
+|---|---|---|
+| default (20×60, 30 m) | 0.358 | 1664 |
+| **wide (40×120, 80 m)** | **0.620** | 1664 |
+
+The retrieval generalises — the same code recovers 62 % of revisits at top-1 on a
+wholly different dataset — though below KITTI's best (seq 00 wide 0.966), as
+expected from a half-density 32-beam sensor and a vegetated campus. And the
+config lesson from §3 transfers: the *same* "wide" descriptor that rescued KITTI's
+reverse loops (0.34 → 0.77) nearly doubles NCLT recall (0.358 → 0.620), since the
+larger, more open campus needs the longer 80 m range. The method generalises, and
+so does the knowledge of how to tune it.
+
+## 6. Discussion
+
+The four findings compose into one statement: **better representations help where
 the view is shared, cannot manufacture an unobserved view, and the right way to
 combine sensors that fail differently is to verify a match geometrically rather
 than to combine retrieval scores.** This is exactly a retrieve → align → evidence
@@ -168,12 +192,15 @@ geometric evidence — not the descriptor score — decides what to trust. On re
 data, that architecture turns two individually-limited sensors into a retriever
 that beats both.
 
-## 6. Limitations
+## 7. Limitations
 
 - **Grayscale camera.** KITTI `image_0` (grayscale → 3 channels); EigenPlaces
   trained on RGB. Forward camera numbers would likely rise with colour `image_2`;
   this does not affect Finding 2 (the reverse collapse is geometric) or Finding 3.
-- **One dataset.** KITTI urban driving only; cross-dataset generalisation untested.
+- **Cross-dataset is LiDAR-only.** §5 validates the LiDAR retrieval on NCLT; the
+  camera/fusion findings (2, 3) were not re-run there (NCLT's camera is a 360°
+  Ladybug, not a forward monocular). NCLT is one session with intra-session
+  revisits; the long-term cross-session case (different days/seasons) is left open.
 - **seq 07 is small** (94 revisit queries) — its absolute number is noisy.
 - **Geometric verification uses a Scan-Context proxy**, not a full SE(3) ICP
   residual with inlier counts. We tested the full SE2 aligner as the verifier
@@ -185,7 +212,7 @@ that beats both.
   within 0.762–0.784 and beats every single-modality and score-fusion number
   throughout; the default α = 1.3 (0.779) sits on the plateau.
 
-## 7. Reproducibility
+## 8. Reproducibility
 
 ```bash
 python scripts/benchmark_kitti_lidar.py            # LiDAR Scan-Context
@@ -193,6 +220,7 @@ python scripts/benchmark_kitti_vpr.py              # camera ResNet-18 baseline
 python scripts/benchmark_kitti_vpr_learned.py      # camera EigenPlaces (MIT, torch.hub)
 python scripts/experiment_scancontext_config.py    # LiDAR default-vs-wide (seq 00/08)
 python scripts/benchmark_kitti_fusion.py           # RRF / confidence-gate / geo-verified
+python scripts/benchmark_nclt_lidar.py [--wide]    # cross-dataset (NCLT HDL-32E)
 python scripts/make_results_summary.py             # Findings 1-2 figure
 python scripts/make_fusion_figure.py               # Finding 3 figure
 ```
@@ -209,3 +237,4 @@ are under `docs/assets/`.
 4. G. V. Cormack, C. L. A. Clarke, S. Büttcher. *Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods.* SIGIR 2009.
 5. K. He, X. Zhang, S. Ren, J. Sun. *Deep Residual Learning for Image Recognition.* CVPR 2016.
 6. D. G. Lowe. *Distinctive Image Features from Scale-Invariant Keypoints.* IJCV 2004.
+7. N. Carlevaris-Bianco, A. K. Ushani, R. M. Eustice. *University of Michigan North Campus Long-Term Vision and LIDAR Dataset.* IJRR 2016.

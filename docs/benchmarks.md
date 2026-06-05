@@ -243,6 +243,35 @@ turns two individually-limited sensors into a retriever that beats both. That is
 why the framework is retrieve → align → evidence, not retrieval score alone.
 Full reasoning in [Two findings → Finding 3](findings.md).
 
+## Cross-dataset — does the LiDAR retrieval generalise beyond KITTI?
+
+Everything above is KITTI. To test generalisation we run the *same* Scan-Context
+code and protocol on a genuinely different dataset: **NCLT** (University of
+Michigan North Campus Long-Term; Carlevaris-Bianco et al., 2016) — different city,
+different platform (Segway), **different sensor (Velodyne HDL-32E, 32 beams vs
+KITTI's 64)**, a campus route with real intra-session revisits. We parse NCLT's
+packed `velodyne_hits.bin` hit-stream into 10 Hz revolutions, keep every 15th
+(3716 scans over a 94-minute, 420 × 791 m route), sync the high-rate ground truth,
+and run the KITTI protocol unchanged (`python scripts/benchmark_nclt_lidar.py`).
+
+| config | Recall@1 | Recall@5 | Recall@20 | revisit queries |
+|---|---|---|---|---|
+| default (20×60, 30 m) | 0.358 | 0.432 | 0.466 | 1664 |
+| **wide (40×120, 80 m)** | **0.620** | 0.671 | 0.684 | 1664 |
+
+*Reading these honestly:*
+- The retrieval **generalises**: on a different city/robot/sensor it recovers
+  62 % of revisits at top-1 — far above chance, from the same code.
+- It is **lower than KITTI's best** (seq 00 wide 0.966; 5-seq mean 0.70), as
+  expected: the HDL-32E is half the beams of KITTI's HDL-64E (≈1.7 k vs ≈10 k
+  points/scan after voxelisation), and a vegetated campus with pedestrians is a
+  harder place-recognition target than KITTI's streets.
+- **The KITTI config-tuning insight transfers.** The same "wide" descriptor that
+  rescued KITTI's reverse loops (seq 08, 0.34 → 0.77) nearly doubles NCLT recall
+  (0.358 → 0.620): NCLT's larger, more open campus needs the longer 80 m range.
+  The default's low number was largely a config mismatch, not a method failure —
+  the same lesson, on new data.
+
 ## Notes on honesty
 
 - The synthetic demo tables (`examples/run_*_eval.py`, some README snippets)
