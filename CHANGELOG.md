@@ -3,6 +3,28 @@
 All notable changes to BEVMatch. Versions follow the roadmap in
 [docs/architecture.md §21](docs/architecture.md).
 
+## 1.14.0 — Cross-session long-term retrieval on NCLT (Finding 5)
+
+- `scripts/benchmark_nclt_cross_session.py`: the long-term test NCLT exists for —
+  build the reference map from **2012-01-08 (winter)** and query it with
+  **2012-08-04 (summer)**, 209 days and a full change of season later. NCLT's
+  ground truth shares one campus frame across days, so poses compare directly
+  between sessions (a summer frame is a true revisit of a winter frame iff within
+  *D* m; no temporal exclusion). Uses the official `velodyne_sync` product (one
+  synchronised revolution per file, 8 bytes/point) — cleaner than the hit-stream —
+  for both sessions, with a same-day within-session baseline for control.
+- **Finding 5:** the map survives the seasons — a winter map localises a summer
+  drive at **R@1 @ 5 m = 0.678**, only **0.16 below** the same-day baseline
+  (0.840). Appearance-blind range geometry barely notices foliage/snow/light: the
+  modality that *lost* the viewpoint battle (Finding 2) *wins* the long-term one.
+  The config lesson transfers a third time (wide 0.678 > default 0.634). Honest
+  caveats documented: the >5 m cross/within crossover (temporal-exclusion effect)
+  and the sync-vs-hit-stream baseline gap.
+- `scripts/make_cross_session_figure.py` → `docs/assets/bevmatch_cross_session_summary.png`.
+- docs/findings.md (now "Five findings"), docs/report.md (§6 + renumber),
+  docs/benchmarks.md (Cross-session section), README (NCLT cross-session table),
+  all updated. Fixed an NpzFile-per-access memory blow-up in the cache loader.
+
 ## 1.13.0 — Cross-dataset generalisation on NCLT (Finding 4)
 
 - `scripts/benchmark_nclt_lidar.py`: runs the *same* Scan-Context LiDAR retrieval

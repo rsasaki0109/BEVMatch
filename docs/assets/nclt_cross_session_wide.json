@@ -1,0 +1,64 @@
+{
+  "dataset": "NCLT",
+  "experiment": "cross-session long-term",
+  "reference_session": "2012-01-08",
+  "query_session": "2012-08-04",
+  "days_apart": 209,
+  "sensor": "Velodyne HDL-32E",
+  "keep_every": 15,
+  "config_name": "wide",
+  "config": {
+    "n_rings": 40,
+    "n_sectors": 120,
+    "max_range_m": 80.0,
+    "voxel_m": 0.5
+  },
+  "n_ref": 1876,
+  "n_query": 1608,
+  "within_session": {
+    "5m": {
+      "n_queries": 846,
+      "recall@1": 0.8404,
+      "recall@5": 0.8629,
+      "recall@10": 0.8676,
+      "recall@20": 0.8712
+    },
+    "10m": {
+      "n_queries": 1082,
+      "recall@1": 0.7209,
+      "recall@5": 0.756,
+      "recall@10": 0.7625,
+      "recall@20": 0.7662
+    },
+    "25m": {
+      "n_queries": 1540,
+      "recall@1": 0.5409,
+      "recall@5": 0.5955,
+      "recall@10": 0.6162,
+      "recall@20": 0.6468
+    }
+  },
+  "cross_session": {
+    "5m": {
+      "n_queries": 1381,
+      "recall@1": 0.6778,
+      "recall@5": 0.6988,
+      "recall@10": 0.7082,
+      "recall@20": 0.7154
+    },
+    "10m": {
+      "n_queries": 1451,
+      "recall@1": 0.6823,
+      "recall@5": 0.7133,
+      "recall@10": 0.7264,
+      "recall@20": 0.7333
+    },
+    "25m": {
+      "n_queries": 1523,
+      "recall@1": 0.6658,
+      "recall@5": 0.7045,
+      "recall@10": 0.7282,
+      "recall@20": 0.7505
+    }
+  }
+}
